@@ -4,9 +4,11 @@ Projeto para comparar duas implementações funcionalmente equivalentes de um si
 
 ## Estrutura
 
-```text
-modelagem-dominio/
+~~~text
+precificacao/
 ├── pom.xml
+├── configuracao-maven.xml
+├── compose.yml
 ├── precificacao-anemica/
 │   ├── pom.xml
 │   └── src/
@@ -14,56 +16,53 @@ modelagem-dominio/
 │   ├── pom.xml
 │   └── src/
 └── documentacao/
-```
+~~~
 
-O projeto Maven raiz é pai e agregador dos dois módulos. Ele centraliza a configuração de compilação e as versões dos plugins. Cada módulo gera seu próprio JAR executável e não depende do outro.
-
-As regras de negócio serão implementadas separadamente. Requisitos, dados de exemplo e casos de verificação podem ser comuns, mas não existe um módulo compartilhado de domínio.
+O projeto Maven raiz é pai e agregador dos dois módulos. Cada módulo gera seu próprio JAR e não depende do outro. As regras de negócio são implementadas separadamente; requisitos e casos de verificação podem ser comuns, mas não existe módulo compartilhado de domínio.
 
 ## Estado atual
 
-O módulo `precificacao-anemica` contém a estrutura de controllers, services, repositories, models, enums, dtos e exceptions. Os modelos de dados e as interfaces de repositório estão criados; controllers e serviços possuem suas dependências preparadas, mas ainda não executam operações de negócio. Os DTOs permanecem reservados até a definição dos contratos da API.
+O módulo precificacao-anemica expõe cadastro e consulta de produtos por HTTP, com Spring Boot 4.1.2, JDBC, PostgreSQL e migração Flyway. Os controllers tratam HTTP, os services concentram cálculos e validações, e os repositories executam o acesso ao banco. Os modelos permanecem sem regras de negócio.
 
-O módulo `modelo-rico` mantém sua classe de entrada inicial, sem alterações de implementação. Os dois pontos de entrada imprimem uma mensagem e encerram. Ainda não há API HTTP ou conexão ao PostgreSQL.
+O módulo modelo-rico mantém sua classe de entrada inicial, que imprime uma mensagem e encerra. Faturamento e atualização de produtos existentes permanecem pendentes na implementação anêmica.
 
-Framework, mecanismo de persistência e bibliotecas de teste não foram escolhidos nem adicionados. Os diretórios de recursos e testes estão preparados, sem impor uma ferramenta de testes.
-
-O compilador permanece configurado provisoriamente com `release` 17. O ambiente local utiliza JDK 24.0.2 e Maven 3.9.9. A configuração de compilação poderá ser revista junto do framework e do ambiente de execução.
+A implementação anêmica possui testes de cálculo e HTTP, além de um teste opcional de integração com PostgreSQL. Consulte [as instruções da API](precificacao-anemica/README.md) para configurar o banco, iniciar o servidor e importar os exemplos no Postman.
 
 ## Compilar
 
-É necessário ter um JDK 17 ou superior e Maven disponível.
+É necessário JDK 17 ou superior e Maven 3.6.3 ou superior.
 
-Na raiz do projeto:
+Na raiz:
 
-```powershell
-mvn package
-```
+~~~powershell
+mvn -s configuracao-maven.xml package
+~~~
 
-Para compilar e empacotar um módulo de cada vez:
+Para compilar um módulo de cada vez:
 
-```powershell
-mvn -pl precificacao-anemica package
-mvn -pl modelo-rico package
-```
+~~~powershell
+mvn -s configuracao-maven.xml -pl precificacao-anemica package
+mvn -s configuracao-maven.xml -pl modelo-rico package
+~~~
 
-## Executar a estrutura inicial
+A configuração de Maven incluída permite usar o Maven Central neste projeto sem modificar a configuração corporativa da máquina.
 
-Após o empacotamento, cada aplicação pode ser executada separadamente:
+## Executar
 
-```powershell
-java -jar precificacao-anemica/target/precificacao-anemica-1.0.0-SNAPSHOT.jar
-java -jar modelo-rico/target/modelo-rico-1.0.0-SNAPSHOT.jar
-```
+Configure JAVA_HOME para um JDK compatível, prepare o PostgreSQL e defina DB_URL, DB_USER e DB_PASSWORD conforme as instruções da API. Depois:
 
-Esses comandos apenas verificam os pontos de entrada. Eles não iniciam um servidor HTTP nesta etapa.
+~~~powershell
+& "$env:JAVA_HOME\bin\java.exe" -jar precificacao-anemica/target/precificacao-anemica-1.0.0-SNAPSHOT.jar
+~~~
+
+A API atende em http://localhost:8080.
 
 ## Abrir na IDE
 
-Importe o `pom.xml` da raiz como projeto Maven. A IDE deve reconhecer `precificacao-anemica` e `modelo-rico` como módulos do mesmo projeto.
+Importe o pom.xml da raiz como projeto Maven. A IDE deve reconhecer os dois módulos. Se a IDE utilizar o Nexus corporativo, selecione configuracao-maven.xml como configuração do Maven deste projeto.
 
 ## Continuidade
 
-As funcionalidades previstas são cadastro e consulta de produtos, atualização de precificação e criação e consulta de faturas. O detalhamento dos casos de uso e dos diagramas permanece no planejamento do trabalho.
+Os próximos casos de uso são atualização da precificação e criação e consulta de faturas. O módulo com comportamento encapsulado deve atender às mesmas regras funcionais e condições de comparação, com implementação própria.
 
-Antes de implementar a API e a persistência, é necessário escolher o framework, o acesso ao PostgreSQL e os contratos das operações. Essas escolhas devem atender às mesmas regras de negócio nas duas versões.
+Os casos de uso, diagramas e registros de comparação ficam em documentacao.

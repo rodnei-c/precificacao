@@ -1,0 +1,172 @@
+{
+  "info": {
+    "name": "Precificação anêmica - produtos",
+    "description": "Inicie a API e o PostgreSQL. Os cadastros guardam codigoProduto para a consulta seguinte.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080"
+    },
+    {
+      "key": "codigoProduto",
+      "value": "1"
+    }
+  ],
+  "item": [
+    {
+      "name": "Cadastrar produto com acréscimo de 20%",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Produto cadastrado', function () { pm.response.to.have.status(201); });",
+              "if (pm.response.code === 201) { pm.collectionVariables.set('codigoProduto', pm.response.json().codigo); }"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nome\": \"Produto de exemplo\",\n  \"custo\": 100,\n  \"percentual\": 20,\n  \"modalidadePrecificacao\": \"ACRESCIMO_SOBRE_CUSTO\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": "{{baseUrl}}/api/produtos"
+      }
+    },
+    {
+      "name": "Consultar produto cadastrado",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/api/produtos/{{codigoProduto}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Produto encontrado', function () { pm.response.to.have.status(200); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Cadastrar com cálculo inverso do custo",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Produto cadastrado', function () { pm.response.to.have.status(201); });",
+              "if (pm.response.code === 201) { pm.collectionVariables.set('codigoProduto', pm.response.json().codigo); }"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nome\": \"Produto com custo calculado\",\n  \"precoVenda\": 125,\n  \"percentual\": 20,\n  \"modalidadePrecificacao\": \"MARGEM_SOBRE_VENDA\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": "{{baseUrl}}/api/produtos"
+      }
+    },
+    {
+      "name": "Cadastrar com cálculo do percentual",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Produto cadastrado', function () { pm.response.to.have.status(201); });",
+              "if (pm.response.code === 201) { pm.collectionVariables.set('codigoProduto', pm.response.json().codigo); }"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nome\": \"Produto com preço direto\",\n  \"custo\": 100,\n  \"precoVenda\": 125,\n  \"modalidadePrecificacao\": \"MARGEM_SOBRE_VENDA\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": "{{baseUrl}}/api/produtos"
+      }
+    },
+    {
+      "name": "Rejeitar três valores informados",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nome\": \"Entrada inválida\",\n  \"custo\": 100,\n  \"precoVenda\": 120,\n  \"percentual\": 20,\n  \"modalidadePrecificacao\": \"ACRESCIMO_SOBRE_CUSTO\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": "{{baseUrl}}/api/produtos"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Entrada rejeitada', function () { pm.response.to.have.status(400); });"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}
