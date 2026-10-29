@@ -9,7 +9,9 @@ API HTTP de cadastro e consulta de produtos, com Java 17, Spring Boot 4.1.2, JDB
 - Repository: executa SQL parametrizado e converte os registros do banco em dados de produto.
 - Model: mantém dados, construtores e getters/setters, sem regras de negócio.
 
-As interfaces de repositório existentes foram preservadas. JdbcProdutoRepository implementa o acesso ao PostgreSQL. As faturas continuam na estrutura inicial; seus endpoints e regras ainda não foram implementados.
+Os contratos dos serviços ficam em `services`, e suas implementações em `services/impl`: `ProdutoServiceImpl`, `PrecificacaoServiceImpl` e `FaturaServiceImpl`. Os controllers recebem as interfaces dos serviços.
+
+As interfaces de repositório ficam em `repositories`. A implementação `JdbcProdutoRepository`, em `repositories/impl`, executa o acesso ao PostgreSQL. As faturas continuam na estrutura inicial; seus endpoints e regras ainda não foram implementados.
 
 ## Banco de dados
 

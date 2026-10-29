@@ -2,6 +2,7 @@ package br.com.precificacao.anemico.repositories;
 
 import br.com.precificacao.anemico.enums.ModalidadePrecificacao;
 import br.com.precificacao.anemico.models.Produto;
+import br.com.precificacao.anemico.repositories.impl.JdbcProdutoRepository;
 import java.math.BigDecimal;
 import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.Test;
@@ -25,7 +26,7 @@ class PostgresProdutoRepositoryTest {
       System.getenv("BANCO_TESTE_SENHA")
     );
     Flyway.configure().dataSource(conexao).load().migrate();
-    JdbcProdutoRepository repositorio = new JdbcProdutoRepository(new JdbcTemplate(conexao));
+    ProdutoRepository repositorio = new JdbcProdutoRepository(new JdbcTemplate(conexao));
     Produto cadastrado = repositorio.salvar(new Produto(
       null, "Produto de integração", new BigDecimal("100.00"), new BigDecimal("125.00"),
       new BigDecimal("20.0000"), ModalidadePrecificacao.MARGEM_SOBRE_VENDA

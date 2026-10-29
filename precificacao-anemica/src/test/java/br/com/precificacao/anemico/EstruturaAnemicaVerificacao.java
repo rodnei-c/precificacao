@@ -12,8 +12,10 @@ import br.com.precificacao.anemico.models.Produto;
 import br.com.precificacao.anemico.repositories.FaturaRepository;
 import br.com.precificacao.anemico.repositories.ProdutoRepository;
 import br.com.precificacao.anemico.services.FaturaService;
-import br.com.precificacao.anemico.services.PrecificacaoService;
 import br.com.precificacao.anemico.services.ProdutoService;
+import br.com.precificacao.anemico.services.impl.FaturaServiceImpl;
+import br.com.precificacao.anemico.services.impl.PrecificacaoServiceImpl;
+import br.com.precificacao.anemico.services.impl.ProdutoServiceImpl;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -83,8 +85,8 @@ public final class EstruturaAnemicaVerificacao {
             public List<Fatura> listar() { return List.of(); }
         };
 
-        ProdutoService produtoService = new ProdutoService(produtos, new PrecificacaoService());
-        FaturaService faturaService = new FaturaService(faturas, produtos);
+        ProdutoService produtoService = new ProdutoServiceImpl(produtos, new PrecificacaoServiceImpl());
+        FaturaService faturaService = new FaturaServiceImpl(faturas, produtos);
         verificar(new ProdutoController(produtoService) != null, "Montagem do controller de produtos");
         verificar(new FaturaController(faturaService) != null, "Montagem do controller de faturas");
 

@@ -1,7 +1,8 @@
-package br.com.precificacao.anemico.repositories;
+package br.com.precificacao.anemico.repositories.impl;
 
 import br.com.precificacao.anemico.enums.ModalidadePrecificacao;
 import br.com.precificacao.anemico.models.Produto;
+import br.com.precificacao.anemico.repositories.ProdutoRepository;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.List;

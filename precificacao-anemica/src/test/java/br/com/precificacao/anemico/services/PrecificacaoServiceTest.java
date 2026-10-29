@@ -3,6 +3,7 @@ package br.com.precificacao.anemico.services;
 import br.com.precificacao.anemico.enums.ModalidadePrecificacao;
 import br.com.precificacao.anemico.exceptions.ValidacaoException;
 import br.com.precificacao.anemico.models.Produto;
+import br.com.precificacao.anemico.services.impl.PrecificacaoServiceImpl;
 import java.math.BigDecimal;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -14,7 +15,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class PrecificacaoServiceTest {
 
-  private final PrecificacaoService servico = new PrecificacaoService();
+  private final PrecificacaoService servico = new PrecificacaoServiceImpl();
 
   @ParameterizedTest
   @CsvSource(delimiter = ';', value = {

@@ -2,8 +2,9 @@ package br.com.precificacao.anemico.controllers;
 
 import br.com.precificacao.anemico.models.Produto;
 import br.com.precificacao.anemico.repositories.ProdutoRepository;
-import br.com.precificacao.anemico.services.PrecificacaoService;
 import br.com.precificacao.anemico.services.ProdutoService;
+import br.com.precificacao.anemico.services.impl.PrecificacaoServiceImpl;
+import br.com.precificacao.anemico.services.impl.ProdutoServiceImpl;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -47,7 +48,7 @@ class ProdutoControllerTest {
         return new ArrayList<>(registros.values());
       }
     };
-    ProdutoService servico = new ProdutoService(repositorio, new PrecificacaoService());
+    ProdutoService servico = new ProdutoServiceImpl(repositorio, new PrecificacaoServiceImpl());
     api = MockMvcBuilders.standaloneSetup(new ProdutoController(servico))
       .setControllerAdvice(new TratadorExcecoes()).build();
   }
