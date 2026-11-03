@@ -26,6 +26,8 @@ O módulo precificacao-anemica expõe cadastro e consulta de produtos por HTTP, 
 
 O módulo precificacao-rica usa Takes e disponibiliza `POST /api/produtos` e `GET /api/produtos/{codigo}` na porta 8081 e usa o banco separado `precificacao_rica`. A coleção consulta todos os dados em uma leitura SQL e devolve um decorador imutável do produto. A preparação do banco, a execução da API e os testes estão descritos [nas instruções do módulo](precificacao-rica/README.md).
 
+O rico também possui a estrutura inicial de faturas: contratos de entidade e coleção, item com quantidade validada e objetos de desconto. O item consulta o preço atual do produto para calcular seu subtotal. A implementação da fatura completa, sua persistência e seus endpoints continuam pendentes.
+
 Faturamento e atualização de produtos existentes permanecem pendentes na implementação anêmica.
 
 A implementação anêmica possui testes de cálculo e HTTP, além de um teste opcional de integração com PostgreSQL. Consulte [as instruções da API](precificacao-anemica/README.md) para configurar o banco, iniciar o servidor e importar os exemplos no Postman.

@@ -2,6 +2,33 @@
 
 A API usa Takes. `TkCadastroProduto` atende `POST /api/produtos`, e `TkConsultaProduto` atende `GET /api/produtos/{codigo}`. Os dois usam o banco `precificacao_rica`.
 
+## Estrutura inicial de faturas
+
+O pacote `br.com.modelagemdominio.rico.faturas` reúne o início do domínio de faturamento, no mesmo nível de `produtos`:
+
+~~~text
+faturas/
+├── Fatura.java
+├── Faturas.java
+├── ItemFatura.java
+├── Quantidade.java
+├── FalhaFatura.java
+├── FaturaInvalida.java
+└── descontos/
+    ├── Desconto.java
+    ├── DescontoFixo.java
+    ├── DescontoPercentual.java
+    └── SemDesconto.java
+~~~
+
+`Fatura` define o contrato da entidade e `Faturas` define cadastro, consulta e listagem da coleção. Seus contratos registram a necessidade de pelo menos um item, a rejeição de desconto fixo superior ao subtotal no cadastro e o arredondamento somente do total final. A implementação concreta da fatura, os cálculos do subtotal geral e do total, a persistência e as rotas HTTP ainda estão pendentes. Por isso, nenhuma migração de faturamento foi adicionada nesta etapa.
+
+`ItemFatura` já calcula seu subtotal. Ele recebe a coleção `Produtos`, o código do produto e uma `Quantidade` positiva com até quatro casas decimais. Cada cálculo consulta novamente a coleção e multiplica o preço atual pela quantidade, mantendo toda a precisão. Isso também permite usar `PgProdutosConstantes`: cada consulta à coleção faz uma nova leitura, mesmo que o produto devolvido por ela preserve os valores daquela leitura. A construção do item não acessa o banco.
+
+Os descontos usam composição pelo contrato `Desconto`. `DescontoPercentual` calcula o abatimento sem arredondamento intermediário. `DescontoFixo` mantém seu valor original e limita o abatimento ao subtotal atual; quando os preços sobem, o valor original volta a ser aplicado até esse limite. `SemDesconto` representa ausência de abatimento. O desconto percentual segue a regra inicial, sem o mínimo de R$ 200,00 previsto para o cenário posterior de manutenção.
+
+Os testes de quantidade, item e descontos podem ser executados sem PostgreSQL pelo comando de testes do módulo.
+
 ## Objetos de consulta
 
 `PgProduto` representa o registro no PostgreSQL e pode consultar nome e precificação sob demanda. A coleção `PgProdutosConstantes`, usada pela API, carrega os dados do produto em um único `SELECT` e passa o mesmo `DataSource` ao `PgProduto`.
