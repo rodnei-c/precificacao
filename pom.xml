@@ -14,7 +14,7 @@
 
     <modules>
         <module>precificacao-anemica</module>
-        <module>modelo-rico</module>
+        <module>precificacao-rica</module>
     </modules>
 
     <properties>

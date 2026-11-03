@@ -12,7 +12,7 @@ precificacao/
 ├── precificacao-anemica/
 │   ├── pom.xml
 │   └── src/
-├── modelo-rico/
+├── precificacao-rica/
 │   ├── pom.xml
 │   └── src/
 └── documentacao/
@@ -24,7 +24,9 @@ O projeto Maven raiz é pai e agregador dos dois módulos. Cada módulo gera seu
 
 O módulo precificacao-anemica expõe cadastro e consulta de produtos por HTTP, com Spring Boot 4.1.2, JDBC, PostgreSQL e migração Flyway. Os controllers tratam HTTP, os services concentram cálculos e validações, e os repositories executam o acesso ao banco. Os modelos permanecem sem regras de negócio.
 
-O módulo modelo-rico mantém sua classe de entrada inicial, que imprime uma mensagem e encerra. Faturamento e atualização de produtos existentes permanecem pendentes na implementação anêmica.
+O módulo precificacao-rica usa Takes e disponibiliza `POST /api/produtos` e `GET /api/produtos/{codigo}` na porta 8081 e usa o banco separado `precificacao_rica`. A coleção consulta todos os dados em uma leitura SQL e devolve um decorador imutável do produto. A preparação do banco, a execução da API e os testes estão descritos [nas instruções do módulo](precificacao-rica/README.md).
+
+Faturamento e atualização de produtos existentes permanecem pendentes na implementação anêmica.
 
 A implementação anêmica possui testes de cálculo e HTTP, além de um teste opcional de integração com PostgreSQL. Consulte [as instruções da API](precificacao-anemica/README.md) para configurar o banco, iniciar o servidor e importar os exemplos no Postman.
 
@@ -42,7 +44,7 @@ Para compilar um módulo de cada vez:
 
 ~~~powershell
 mvn -s configuracao-maven.xml -pl precificacao-anemica package
-mvn -s configuracao-maven.xml -pl modelo-rico package
+mvn -s configuracao-maven.xml -pl precificacao-rica package
 ~~~
 
 A configuração de Maven incluída permite usar o Maven Central neste projeto sem modificar a configuração corporativa da máquina.
