@@ -24,7 +24,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 class AplicacaoPostgresTest {
 
   @Test
-  void iniciaServidorECadastraConsultaEValidaJson() throws Exception {
+  void iniciaServidorEVerificaOperacoesDeProduto() throws Exception {
     SpringApplication aplicacao = new SpringApplication(AplicacaoAnemica.class);
     aplicacao.addInitializers(contexto -> contexto.getEnvironment().getPropertySources()
       .addFirst(new MapPropertySource("conexao-exclusiva-de-teste", Map.of(
@@ -62,6 +62,38 @@ class AplicacaoPostgresTest {
       assertEquals(200, produto.statusCode(), produto.body());
       assertEquals("Produto integrado", json.readTree(produto.body()).get("nome").stringValue());
 
+      URI precificacao = URI.create(consulta + "/precificacao");
+      HttpResponse<String> alteracao = alterar(cliente, precificacao, """
+        {"custo": 120, "percentual": 20}
+        """);
+      assertEquals(200, alteracao.statusCode(), alteracao.body());
+      assertEquals(0, new BigDecimal("150.00").compareTo(
+        json.readTree(alteracao.body()).get("precoVenda").decimalValue()
+      ));
+      assertEquals(
+        "MARGEM_SOBRE_VENDA",
+        json.readTree(alteracao.body()).get("modalidadePrecificacao").stringValue()
+      );
+
+      HttpResponse<String> alteracaoInvalida = alterar(cliente, precificacao, """
+        {"custo": 200, "precoVenda": 240, "percentual": 20}
+        """);
+      assertEquals(400, alteracaoInvalida.statusCode(), alteracaoInvalida.body());
+
+      HttpResponse<String> produtoAtualizado = cliente.send(
+        HttpRequest.newBuilder(consulta).timeout(Duration.ofSeconds(10)).GET().build(),
+        HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8)
+      );
+      assertEquals(200, produtoAtualizado.statusCode(), produtoAtualizado.body());
+      assertEquals(json.readTree(alteracao.body()), json.readTree(produtoAtualizado.body()));
+
+      HttpResponse<String> produtoAusente = alterar(
+        cliente, URI.create(endereco + "/api/produtos/9223372036854775807/precificacao"), """
+        {"custo": 120, "percentual": 20}
+        """
+      );
+      assertEquals(404, produtoAusente.statusCode(), produtoAusente.body());
+
       HttpResponse<String> modalidadeNumerica = enviar(cliente, endereco, """
         {"nome":"Inválido","custo":100,"percentual":20,"modalidadePrecificacao":0}
         """);
@@ -75,6 +107,15 @@ class AplicacaoPostgresTest {
         """);
       assertEquals(400, campoDesconhecido.statusCode(), campoDesconhecido.body());
     }
+  }
+
+  private HttpResponse<String> alterar(HttpClient cliente, URI precificacao, String corpo)
+    throws Exception {
+    HttpRequest requisicao = HttpRequest.newBuilder(precificacao)
+      .timeout(Duration.ofSeconds(10))
+      .header("Content-Type", "application/json")
+      .method("PATCH", HttpRequest.BodyPublishers.ofString(corpo, StandardCharsets.UTF_8)).build();
+    return cliente.send(requisicao, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
   }
 
   private HttpResponse<String> enviar(HttpClient cliente, String endereco, String corpo)

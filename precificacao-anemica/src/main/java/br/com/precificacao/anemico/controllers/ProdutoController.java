@@ -1,17 +1,24 @@
 package br.com.precificacao.anemico.controllers;
 
+import br.com.precificacao.anemico.dtos.AlteracaoCategoriaRequisicao;
+import br.com.precificacao.anemico.dtos.AlteracaoPrecificacaoRequisicao;
 import br.com.precificacao.anemico.dtos.CadastroProdutoRequisicao;
 import br.com.precificacao.anemico.dtos.ProdutoResposta;
+import br.com.precificacao.anemico.enums.ModalidadePrecificacao;
+import br.com.precificacao.anemico.models.AlteracaoPrecificacao;
 import br.com.precificacao.anemico.models.Produto;
 import br.com.precificacao.anemico.services.ProdutoService;
 import java.net.URI;
+import java.util.List;
 import java.util.Objects;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
@@ -56,11 +63,41 @@ public class ProdutoController {
     return resposta(produtoService.buscarPorCodigo(codigo));
   }
 
+  @GetMapping
+  public List<ProdutoResposta> listar(
+    @RequestParam(name = "nome", required = false) String nome,
+    @RequestParam(name = "modalidadePrecificacao", required = false) ModalidadePrecificacao modalidade,
+    @RequestParam(name = "categoria", required = false) Long categoria
+  ) {
+    return produtoService.listar(nome, modalidade, categoria).stream().map(this::resposta).toList();
+  }
+
+  @PatchMapping("/{codigo}/precificacao")
+  public ProdutoResposta alterarPrecificacao(
+    @PathVariable("codigo") Long codigo,
+    @RequestBody AlteracaoPrecificacaoRequisicao requisicao
+  ) {
+    return resposta(produtoService.alterarPrecificacao(codigo, requisicao));
+  }
+
+  @PatchMapping("/{codigo}/categoria")
+  public ProdutoResposta alterarCategoria(
+    @PathVariable("codigo") Long codigo,
+    @RequestBody AlteracaoCategoriaRequisicao requisicao
+  ) {
+    return resposta(produtoService.alterarCategoria(codigo, requisicao));
+  }
+
+  @GetMapping("/{codigo}/historico-precificacao")
+  public List<AlteracaoPrecificacao> historicoPrecificacao(@PathVariable("codigo") Long codigo) {
+    return produtoService.historicoPrecificacao(codigo);
+  }
+
   private ProdutoResposta resposta(Produto produto) {
     return new ProdutoResposta(
       produto.getCodigo(), produto.getNome(), produto.getCusto(),
       produto.getPrecoVenda(), produto.getPercentual(),
-      produto.getModalidadePrecificacao()
+      produto.getModalidadePrecificacao(), produto.getCodigoCategoria()
     );
   }
 }

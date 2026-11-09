@@ -1,6 +1,10 @@
 spring:
   application:
     name: precificacao-anemica
+  config:
+    import:
+      - "optional:file:./.env.anemico[.properties]"
+      - "optional:file:./precificacao-anemica/.env.anemico[.properties]"
   datasource:
     url: ${DB_URL:jdbc:postgresql://localhost:5432/precificacao_anemica}
     username: ${DB_USER:postgres}

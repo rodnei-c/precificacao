@@ -22,13 +22,13 @@ O projeto Maven raiz é pai e agregador dos dois módulos. Cada módulo gera seu
 
 ## Estado atual
 
-O módulo precificacao-anemica expõe cadastro e consulta de produtos por HTTP, com Spring Boot 4.1.2, JDBC, PostgreSQL e migração Flyway. Os controllers tratam HTTP, os services concentram cálculos e validações, e os repositories executam o acesso ao banco. Os modelos permanecem sem regras de negócio.
+O módulo precificacao-anemica expõe cadastro, listagem com filtros, consulta, alteração de precificação, histórico de produtos e gestão de categorias por HTTP, com Spring Boot 4.1.2, JDBC, PostgreSQL e migração Flyway. Os controllers tratam HTTP, os services concentram cálculos e validações, e os repositories executam o acesso ao banco. Os modelos permanecem sem regras de negócio.
 
 O módulo precificacao-rica usa Takes e disponibiliza `POST /api/produtos` e `GET /api/produtos/{codigo}` na porta 8081 e usa o banco separado `precificacao_rica`. A coleção consulta todos os dados em uma leitura SQL e devolve um decorador imutável do produto. A preparação do banco, a execução da API e os testes estão descritos [nas instruções do módulo](precificacao-rica/README.md).
 
 O rico também possui a estrutura inicial de faturas: contratos de entidade e coleção, item com quantidade validada e objetos de desconto. O item consulta o preço atual do produto para calcular seu subtotal. A implementação da fatura completa, sua persistência e seus endpoints continuam pendentes.
 
-Faturamento e atualização de produtos existentes permanecem pendentes na implementação anêmica.
+O módulo anêmico cria e simula faturas, lista faturas por período e consulta faturas pelo código. A consulta recalcula os valores com os preços atuais, usando os itens e o desconto original gravados em PostgreSQL.
 
 A implementação anêmica possui testes de cálculo e HTTP, além de um teste opcional de integração com PostgreSQL. Consulte [as instruções da API](precificacao-anemica/README.md) para configurar o banco, iniciar o servidor e importar os exemplos no Postman.
 
@@ -67,6 +67,6 @@ Importe o pom.xml da raiz como projeto Maven. A IDE deve reconhecer os dois mód
 
 ## Continuidade
 
-Os próximos casos de uso são atualização da precificação e criação e consulta de faturas. O módulo com comportamento encapsulado deve atender às mesmas regras funcionais e condições de comparação, com implementação própria.
+Os próximos casos de uso são a alteração de precificação, a criação e a consulta de faturas no módulo rico. As duas implementações devem seguir as mesmas regras funcionais e condições de comparação.
 
 Os casos de uso, diagramas e registros de comparação ficam em documentacao.

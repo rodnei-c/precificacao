@@ -1,5 +1,6 @@
 package br.com.precificacao.anemico.models;
 
+import br.com.precificacao.anemico.enums.FormaPagamento;
 import br.com.precificacao.anemico.enums.TipoDesconto;
 
 import java.math.BigDecimal;
@@ -14,17 +15,22 @@ public class Fatura {
     private List<ItemFatura> itens = new ArrayList<>();
     private TipoDesconto tipoDesconto;
     private BigDecimal valorDesconto;
+    private Long codigoCliente;
+    private FormaPagamento formaPagamento;
 
     public Fatura() {
     }
 
     public Fatura(Long id, LocalDateTime dataCriacao, List<ItemFatura> itens,
-                  TipoDesconto tipoDesconto, BigDecimal valorDesconto) {
+                  TipoDesconto tipoDesconto, BigDecimal valorDesconto, Long codigoCliente,
+                  FormaPagamento formaPagamento) {
         this.id = id;
         this.dataCriacao = dataCriacao;
         this.itens = itens;
         this.tipoDesconto = tipoDesconto;
         this.valorDesconto = valorDesconto;
+        this.codigoCliente = codigoCliente;
+        this.formaPagamento = formaPagamento;
     }
 
     public Long getId() {
@@ -65,5 +71,21 @@ public class Fatura {
 
     public void setValorDesconto(BigDecimal valorDesconto) {
         this.valorDesconto = valorDesconto;
+    }
+
+    public Long getCodigoCliente() {
+        return codigoCliente;
+    }
+
+    public void setCodigoCliente(Long codigoCliente) {
+        this.codigoCliente = codigoCliente;
+    }
+
+    public FormaPagamento getFormaPagamento() {
+        return formaPagamento;
+    }
+
+    public void setFormaPagamento(FormaPagamento formaPagamento) {
+        this.formaPagamento = formaPagamento;
     }
 }

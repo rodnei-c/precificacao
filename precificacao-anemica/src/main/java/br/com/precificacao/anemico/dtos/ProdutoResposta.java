@@ -1,6 +1,7 @@
 package br.com.precificacao.anemico.dtos;
 
 import br.com.precificacao.anemico.enums.ModalidadePrecificacao;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import java.math.BigDecimal;
 
 /**
@@ -12,6 +13,7 @@ import java.math.BigDecimal;
  * @param precoVenda preço de venda cadastrado
  * @param percentual percentual cadastrado
  * @param modalidadePrecificacao base do percentual
+ * @param codigoCategoria código da categoria, quando vinculada
  */
 public record ProdutoResposta(
   Long codigo,
@@ -19,6 +21,7 @@ public record ProdutoResposta(
   BigDecimal custo,
   BigDecimal precoVenda,
   BigDecimal percentual,
-  ModalidadePrecificacao modalidadePrecificacao
+  ModalidadePrecificacao modalidadePrecificacao,
+  @JsonInclude(JsonInclude.Include.NON_NULL) Long codigoCategoria
 ) {
 }

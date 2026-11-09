@@ -50,7 +50,7 @@ public class TratadorExcecoes {
     LOG.debug("Formato de requisição inválido: {}", excecao.getClass().getSimpleName());
     return resposta(
       HttpStatus.BAD_REQUEST, "Formato inválido",
-      "Confira o JSON, os valores numéricos, a modalidade de precificação e o código da URL."
+      "Confira o formato do JSON e os parâmetros da URL."
     );
   }
 
@@ -60,7 +60,7 @@ public class TratadorExcecoes {
    */
   @ExceptionHandler(DataAccessException.class)
   public ResponseEntity<ProblemDetail> tratarPersistencia(DataAccessException excecao) {
-    LOG.error("Falha ao acessar os dados de produtos: {}", excecao.getClass().getSimpleName());
+    LOG.error("Falha ao acessar o banco de dados: {}", excecao.getClass().getSimpleName());
     return resposta(
       HttpStatus.SERVICE_UNAVAILABLE, "Persistência indisponível",
       "Não foi possível concluir a operação no banco de dados."

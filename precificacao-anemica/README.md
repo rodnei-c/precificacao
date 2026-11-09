@@ -1,6 +1,6 @@
 # Precificação anêmica
 
-API HTTP de cadastro e consulta de produtos, com Java 17, Spring Boot 4.1.2, JDBC, PostgreSQL e Flyway.
+API HTTP de cadastro, consulta e alteração da precificação de produtos e criação e consulta de faturas, com Java 17, Spring Boot 4.1.2, JDBC, PostgreSQL e Flyway.
 
 ## Responsabilidades
 
@@ -11,7 +11,7 @@ API HTTP de cadastro e consulta de produtos, com Java 17, Spring Boot 4.1.2, JDB
 
 Os contratos dos serviços ficam em `services`, e suas implementações em `services/impl`: `ProdutoServiceImpl`, `PrecificacaoServiceImpl` e `FaturaServiceImpl`. Os controllers recebem as interfaces dos serviços.
 
-As interfaces de repositório ficam em `repositories`. A implementação `JdbcProdutoRepository`, em `repositories/impl`, executa o acesso ao PostgreSQL. As faturas continuam na estrutura inicial; seus endpoints e regras ainda não foram implementados.
+As interfaces de repositório ficam em `repositories`. As implementações JDBC em `repositories/impl` executam o acesso ao PostgreSQL.
 
 ## Banco de dados
 
@@ -34,9 +34,9 @@ $env:DB_USER = "postgres"
 $env:DB_PASSWORD = "senha-do-banco"
 ~~~
 
-A aplicação lê essas variáveis do processo que a inicia. Não é necessário colocar credenciais no código. Arquivos .env não são carregados automaticamente pela aplicação.
+A aplicação lê essas variáveis do processo que a inicia. Para manter a senha entre execuções locais, crie `precificacao-anemica/.env.anemico` com uma linha `DB_PASSWORD=sua-senha-local`. O módulo carrega esse arquivo opcional, que o Git ignora. Uma variável `DB_PASSWORD` definida no terminal tem prioridade sobre o arquivo.
 
-Ao iniciar, o Flyway executa src/main/resources/db/migration/V1__criar_tabela_produto.sql e cria a tabela produto e o histórico de migrações. O servidor e o banco PostgreSQL precisam existir antes; a migração cria as tabelas, não o banco.
+Ao iniciar, o Flyway aplica as migrações em `src/main/resources/db/migration`, que criam as tabelas `produto`, `fatura`, `item_fatura`, `historico_precificacao`, `categoria`, `cidade` e `cliente`. Prepare o servidor e o banco PostgreSQL antes de iniciar a aplicação para que o Flyway possa criar as tabelas.
 
 ## Compilar e iniciar
 
@@ -116,13 +116,139 @@ Exemplo de cadastro com cálculo inverso do custo:
 }
 ~~~
 
-O custo calculado de 100.00 é gravado no produto cadastrado. Este endpoint cria um produto; a alteração de produtos existentes fica para uma etapa posterior.
+O custo calculado de 100.00 é gravado no produto cadastrado.
+
+### Cadastrar e listar categorias
+
+Envie `POST http://localhost:8080/api/categorias` com `Content-Type: application/json` e o corpo abaixo.
+
+```json
+{"nome": "Periféricos"}
+```
+
+A resposta `201 Created` contém `codigo` e `nome`. Nomes repetidos, como `Periféricos` e `periféricos`, retornam `400`. Consulte as categorias em `GET http://localhost:8080/api/categorias`.
+
+Para cadastrar um produto com categoria, inclua `"codigoCategoria": 1` no JSON do cadastro, usando o código devolvido pela API. O campo é opcional e aparece na resposta dos produtos que têm categoria.
+
+Para vincular ou trocar a categoria de um produto, envie `PATCH http://localhost:8080/api/produtos/1/categoria` com o código da categoria no corpo.
+
+```json
+{"codigoCategoria": 2}
+```
+
+A resposta `200 OK` contém o produto atualizado. Um código de categoria inválido retorna `400` e uma categoria inexistente retorna `404`.
+
+### Listar produtos
+
+Envie `GET http://localhost:8080/api/produtos` para listar os produtos em ordem de código. Use os filtros opcionais `nome` e `modalidadePrecificacao` na aba Params do Postman. Por exemplo, `nome=teclado` busca esse trecho no nome, ignorando maiúsculas e minúsculas. Também é possível filtrar por modalidade e pelo código da categoria, como em `?nome=teclado&modalidadePrecificacao=ACRESCIMO_SOBRE_CUSTO&categoria=1`. O produto precisa atender a todos os filtros informados.
+
+A resposta é `200 OK` com uma lista, que fica vazia quando nenhum produto corresponde. Uma modalidade inválida retorna `400`.
 
 ### Consultar produto
 
 GET http://localhost:8080/api/produtos/1
 
 Resposta: 200 OK com os mesmos campos do cadastro, ou 404 quando o código não existir.
+
+### Alterar a precificação
+
+Envie `PATCH http://localhost:8080/api/produtos/1/precificacao` com `Content-Type: application/json`. Substitua `1` pelo código do produto cadastrado.
+
+~~~json
+{
+  "custo": 120.00,
+  "percentual": 20.0000
+}
+~~~
+
+Informe exatamente dois valores, usando as mesmas combinações do cadastro. O terceiro é calculado com a modalidade do produto. Código, nome e modalidade são preservados. No exemplo, um produto com acréscimo sobre custo passa a ter preço de venda de 144.00.
+
+A resposta é `200 OK` com o produto atualizado. Um código válido sem registro retorna `404` e valores inválidos retornam `400`.
+
+### Consultar histórico de precificação
+
+Envie `GET http://localhost:8080/api/produtos/1/historico-precificacao`, substituindo `1` pelo código do produto.
+
+A resposta `200 OK` traz as alterações da mais recente para a mais antiga. Cada registro inclui o código da alteração, o código do produto, a data e os valores anteriores e novos de custo, preço de venda e percentual. O histórico inclui alterações efetivas feitas após o cadastro. Reenviar os mesmos valores preserva a lista de alterações.
+
+Um produto sem alterações retorna `[]`. Um código inválido retorna `400` e um produto inexistente retorna `404`.
+
+### Cadastrar e listar cidades
+
+Envie `POST http://localhost:8080/api/cidades` com `Content-Type: application/json` e o corpo abaixo.
+
+```json
+{"nome": "Curitiba", "uf": "PR"}
+```
+
+A resposta `201 Created` contém `codigo`, `nome` e `uf`. A API aceita a sigla em minúsculas e grava em maiúsculas. Uma UF inválida ou uma cidade com o mesmo nome na mesma UF retorna `400`. A comparação de nomes ignora maiúsculas e minúsculas.
+
+Envie `GET http://localhost:8080/api/cidades` para listar as cidades em ordem de código.
+
+### Cadastrar e listar clientes
+
+Envie `POST http://localhost:8080/api/clientes` com `Content-Type: application/json` e o corpo abaixo. Use o código de uma cidade já cadastrada em `codigoCidade`.
+
+```json
+{
+  "nome": "Cliente de exemplo",
+  "cpf": "123.456.789-09",
+  "email": "cliente@example.com",
+  "telefone": "(41) 99999-0000",
+  "endereco": {
+    "cep": "80000-000",
+    "logradouro": "Rua de exemplo",
+    "numero": "12A",
+    "bairro": "Centro",
+    "codigoCidade": 1
+  }
+}
+```
+
+Nome, CPF e e-mail são obrigatórios. Telefone e endereço são opcionais. O telefone aceita número fixo ou celular brasileiro com DDD, com prefixo `+55` opcional. Quando informado, o endereço exige CEP, logradouro, número, bairro e o código da cidade. O complemento é opcional.
+
+A resposta `201 Created` contém o cliente cadastrado e o código gerado pelo banco. CPF e CEP podem ser enviados com ou sem pontuação e são retornados somente com os dígitos. O CPF é validado pelos dígitos verificadores. CPF duplicado, e-mail duplicado ou dados inválidos retornam `400`. A comparação de e-mails ignora maiúsculas e minúsculas. Cidade inexistente retorna `404`.
+
+Envie `GET http://localhost:8080/api/clientes` para listar os clientes em ordem de código.
+
+### Criar fatura
+
+Envie `POST http://localhost:8080/api/faturas` com `Content-Type: application/json`. Use códigos de produtos cadastrados e, se quiser vincular a fatura a um cliente, informe o código dele.
+
+~~~json
+{
+  "itens": [
+    { "codigoProduto": 1, "quantidade": 2.5 }
+  ],
+  "desconto": { "tipo": "PERCENTUAL", "valor": 10 },
+  "codigoCliente": 1,
+  "formaPagamento": "PIX"
+}
+~~~
+
+A fatura aceita ao menos um item, com códigos distintos e quantidades positivas de até quatro casas decimais e 15 dígitos inteiros. O desconto, `codigoCliente` e `formaPagamento` são opcionais. `PERCENTUAL` aceita de 0 a 100 com até quatro casas decimais. `VALOR_FIXO` aceita um valor não negativo com até duas casas decimais, limitado ao subtotal na criação.
+
+O campo `formaPagamento` aceita `PIX`, `DINHEIRO`, `CARTAO_DEBITO`, `CARTAO_CREDITO` ou `BOLETO`.
+
+O `201 Created` retorna código, data de criação, itens na ordem enviada, subtotal, desconto aplicado e total. Os campos `codigoCliente` e `formaPagamento` aparecem quando informados. Os itens incluem o preço atual e o subtotal calculado. Os cálculos usam a precisão disponível até o total final, arredondado para duas casas com `HALF_EVEN`. Dados inválidos retornam `400`. Produtos ou clientes inexistentes retornam `404`.
+
+### Simular fatura
+
+Envie `POST http://localhost:8080/api/faturas/simulacao` com o mesmo JSON do cadastro. A resposta `200 OK` traz os itens com os preços atuais, o subtotal, o desconto aplicado e o total. A simulação é uma prévia e não grava uma fatura.
+
+O cálculo e as validações são os mesmos do cadastro. Dados inválidos retornam `400`. Produtos ou clientes inexistentes retornam `404`.
+
+### Listar faturas
+
+Envie `GET http://localhost:8080/api/faturas?inicio=2026-11-01&fim=2026-11-08&codigoCliente=1`. O filtro `codigoCliente` é opcional e aceita um código inteiro positivo. Os parâmetros `inicio` e `fim` são opcionais, usam o formato `AAAA-MM-DD` e incluem o dia informado por inteiro.
+
+A resposta `200 OK` traz uma lista com `codigo`, `dataCriacao` e `quantidadeItens` de cada fatura, das mais recentes para as mais antigas. O resumo inclui `codigoCliente` e `formaPagamento` quando informados. Uma busca sem resultados devolve `[]`. Datas inválidas ou um início posterior ao fim retornam `400`.
+
+### Consultar fatura
+
+Envie `GET http://localhost:8080/api/faturas/1`, substituindo `1` pelo código retornado no cadastro. A resposta `200 OK` usa o mesmo formato do cadastro, com os preços de venda atuais. Um código inválido retorna `400` e uma fatura ausente retorna `404`.
+
+O desconto fixo aplicado na consulta fica limitado ao subtotal atual. O valor original permanece gravado e volta a ser aplicado integralmente se o subtotal voltar a comportá-lo.
 
 ## Validações implementadas
 

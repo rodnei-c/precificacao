@@ -2,16 +2,24 @@ package br.com.precificacao.anemico;
 
 import br.com.precificacao.anemico.controllers.FaturaController;
 import br.com.precificacao.anemico.controllers.ProdutoController;
+import br.com.precificacao.anemico.dtos.CadastroCategoriaRequisicao;
+import br.com.precificacao.anemico.dtos.FaturaResumo;
 import br.com.precificacao.anemico.enums.ModalidadePrecificacao;
 import br.com.precificacao.anemico.enums.TipoDesconto;
 import br.com.precificacao.anemico.exceptions.RegistroNaoEncontradoException;
 import br.com.precificacao.anemico.exceptions.ValidacaoException;
+import br.com.precificacao.anemico.models.AlteracaoPrecificacao;
+import br.com.precificacao.anemico.models.Categoria;
+import br.com.precificacao.anemico.models.Cliente;
 import br.com.precificacao.anemico.models.Fatura;
 import br.com.precificacao.anemico.models.ItemFatura;
 import br.com.precificacao.anemico.models.Produto;
+import br.com.precificacao.anemico.repositories.ClienteRepository;
 import br.com.precificacao.anemico.repositories.FaturaRepository;
+import br.com.precificacao.anemico.repositories.HistoricoPrecificacaoRepository;
 import br.com.precificacao.anemico.repositories.ProdutoRepository;
 import br.com.precificacao.anemico.services.FaturaService;
+import br.com.precificacao.anemico.services.CategoriaService;
 import br.com.precificacao.anemico.services.ProdutoService;
 import br.com.precificacao.anemico.services.impl.FaturaServiceImpl;
 import br.com.precificacao.anemico.services.impl.PrecificacaoServiceImpl;
@@ -62,7 +70,7 @@ public final class EstruturaAnemicaVerificacao {
 
         LocalDateTime criacao = LocalDateTime.of(2026, 1, 1, 12, 0);
         Fatura fatura = new Fatura(2L, criacao, new ArrayList<>(List.of(item)),
-                TipoDesconto.VALOR_FIXO, new BigDecimal("10.00"));
+                TipoDesconto.VALOR_FIXO, new BigDecimal("10.00"), null, null);
         verificar(fatura.getId().equals(2L), "Identificacao da fatura");
         verificar(fatura.getDataCriacao().equals(criacao), "Data da fatura");
         verificar(fatura.getItens().get(0) == item, "Item da fatura");
@@ -77,16 +85,39 @@ public final class EstruturaAnemicaVerificacao {
         ProdutoRepository produtos = new ProdutoRepository() {
             public Produto salvar(Produto produto) { return produto; }
             public Optional<Produto> buscarPorCodigo(Long codigo) { return Optional.empty(); }
-            public List<Produto> listar() { return List.of(); }
+            public Optional<Produto> buscarPorCodigoParaAtualizacao(Long codigo) { return Optional.empty(); }
+            public List<Produto> listar(String nome, ModalidadePrecificacao modalidade, Long categoria) { return List.of(); }
         };
         FaturaRepository faturas = new FaturaRepository() {
             public Fatura salvar(Fatura fatura) { return fatura; }
             public Optional<Fatura> buscarPorId(Long id) { return Optional.empty(); }
-            public List<Fatura> listar() { return List.of(); }
+            public List<FaturaResumo> listar(LocalDateTime inicioInclusivo, LocalDateTime fimExclusivo, Long codigoCliente) {
+                return List.of();
+            }
         };
 
-        ProdutoService produtoService = new ProdutoServiceImpl(produtos, new PrecificacaoServiceImpl());
-        FaturaService faturaService = new FaturaServiceImpl(faturas, produtos);
+        HistoricoPrecificacaoRepository historico = new HistoricoPrecificacaoRepository() {
+            public void registrar(Long codigo, AlteracaoPrecificacao.Valores anteriores,
+                                  AlteracaoPrecificacao.Valores novos) { }
+            public List<AlteracaoPrecificacao> listarPorProduto(Long codigo) { return List.of(); }
+        };
+        CategoriaService categorias = new CategoriaService() {
+            public Categoria cadastrar(CadastroCategoriaRequisicao requisicao) {
+                throw new UnsupportedOperationException();
+            }
+            public List<Categoria> listar() { return List.of(); }
+            public long validarCategoria(BigDecimal codigo) {
+                throw new UnsupportedOperationException();
+            }
+        };
+        ProdutoService produtoService = new ProdutoServiceImpl(
+                produtos, new PrecificacaoServiceImpl(), historico, categorias);
+        ClienteRepository clientes = new ClienteRepository() {
+            public Optional<Cliente> inserir(Cliente cliente) { return Optional.empty(); }
+            public List<Cliente> listar() { return List.of(); }
+            public boolean existePorCodigo(Long codigo) { return false; }
+        };
+        FaturaService faturaService = new FaturaServiceImpl(faturas, produtos, clientes);
         verificar(new ProdutoController(produtoService) != null, "Montagem do controller de produtos");
         verificar(new FaturaController(faturaService) != null, "Montagem do controller de faturas");
 

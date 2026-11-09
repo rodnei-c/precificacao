@@ -1,13 +1,17 @@
 package br.com.precificacao.anemico.controllers;
 
+import br.com.precificacao.anemico.enums.ModalidadePrecificacao;
+import br.com.precificacao.anemico.models.AlteracaoPrecificacao;
 import br.com.precificacao.anemico.models.Produto;
+import br.com.precificacao.anemico.repositories.HistoricoPrecificacaoRepository;
 import br.com.precificacao.anemico.repositories.ProdutoRepository;
+import br.com.precificacao.anemico.services.CategoriaService;
 import br.com.precificacao.anemico.services.ProdutoService;
 import br.com.precificacao.anemico.services.impl.PrecificacaoServiceImpl;
 import br.com.precificacao.anemico.services.impl.ProdutoServiceImpl;
-import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
@@ -17,6 +21,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.Mockito.mock;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
@@ -44,11 +49,33 @@ class ProdutoControllerTest {
       }
 
       @Override
-      public List<Produto> listar() {
-        return new ArrayList<>(registros.values());
+      public Optional<Produto> buscarPorCodigoParaAtualizacao(Long codigo) {
+        return buscarPorCodigo(codigo);
+      }
+
+      @Override
+      public List<Produto> listar(String nome, ModalidadePrecificacao modalidade, Long categoria) {
+        return registros.values().stream()
+          .filter(produto -> nome == null
+            || produto.getNome().toLowerCase(Locale.ROOT).contains(nome.toLowerCase(Locale.ROOT)))
+          .filter(produto -> modalidade == null || produto.getModalidadePrecificacao() == modalidade)
+          .filter(produto -> categoria == null || categoria.equals(produto.getCodigoCategoria()))
+          .toList();
       }
     };
-    ProdutoService servico = new ProdutoServiceImpl(repositorio, new PrecificacaoServiceImpl());
+    HistoricoPrecificacaoRepository historico = new HistoricoPrecificacaoRepository() {
+      @Override
+      public void registrar(Long codigo, AlteracaoPrecificacao.Valores anteriores,
+                            AlteracaoPrecificacao.Valores novos) {
+        throw new AssertionError("Este teste não espera registrar histórico.");
+      }
+
+      @Override
+      public List<AlteracaoPrecificacao> listarPorProduto(Long codigo) {
+        return List.of();
+      }
+    };
+    ProdutoService servico = new ProdutoServiceImpl(repositorio, new PrecificacaoServiceImpl(), historico, mock(CategoriaService.class));
     api = MockMvcBuilders.standaloneSetup(new ProdutoController(servico))
       .setControllerAdvice(new TratadorExcecoes()).build();
   }

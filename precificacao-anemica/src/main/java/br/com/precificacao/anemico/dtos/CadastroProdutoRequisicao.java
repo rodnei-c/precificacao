@@ -11,12 +11,14 @@ import java.math.BigDecimal;
  * @param precoVenda venda informada, ou ausente quando deve ser calculada
  * @param percentual percentual informado, ou ausente quando deve ser calculado
  * @param modalidadePrecificacao base utilizada para interpretar o percentual
+ * @param codigoCategoria código opcional da categoria
  */
 public record CadastroProdutoRequisicao(
   String nome,
   BigDecimal custo,
   BigDecimal precoVenda,
   BigDecimal percentual,
-  ModalidadePrecificacao modalidadePrecificacao
+  ModalidadePrecificacao modalidadePrecificacao,
+  BigDecimal codigoCategoria
 ) {
 }
