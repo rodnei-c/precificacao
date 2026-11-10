@@ -1,11 +1,14 @@
 package br.com.precificacao.anemico.controllers;
 
 import br.com.precificacao.anemico.dtos.CadastroCategoriaRequisicao;
+import br.com.precificacao.anemico.dtos.RenomeacaoCategoriaRequisicao;
 import br.com.precificacao.anemico.models.Categoria;
 import br.com.precificacao.anemico.services.CategoriaService;
 import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -31,5 +34,13 @@ public class CategoriaController {
   @GetMapping
   public List<Categoria> listar() {
     return categoriaService.listar();
+  }
+
+  /** @return categoria com o mesmo código e o novo nome */
+  @PatchMapping("/{codigo}")
+  public Categoria renomear(
+    @PathVariable("codigo") Long codigo, @RequestBody RenomeacaoCategoriaRequisicao requisicao
+  ) {
+    return categoriaService.renomear(codigo, requisicao);
   }
 }

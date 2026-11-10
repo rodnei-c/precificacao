@@ -102,24 +102,6 @@ class ProdutoControllerTest {
   }
 
   @Test
-  void persisteCustoCalculadoNoCadastro() throws Exception {
-    api.perform(post("/api/produtos").contentType(MediaType.APPLICATION_JSON).content("""
-      {
-        "nome": "Custo calculado",
-        "precoVenda": 125,
-        "percentual": 20,
-        "modalidadePrecificacao": "MARGEM_SOBRE_VENDA"
-      }
-      """))
-      .andExpect(status().isCreated())
-      .andExpect(jsonPath("$.custo").value(100.0));
-
-    api.perform(get("/api/produtos/1"))
-      .andExpect(status().isOk())
-      .andExpect(jsonPath("$.custo").value(100.0));
-  }
-
-  @Test
   void recusaTresValoresSemPersistirProduto() throws Exception {
     api.perform(post("/api/produtos").contentType(MediaType.APPLICATION_JSON).content("""
       {

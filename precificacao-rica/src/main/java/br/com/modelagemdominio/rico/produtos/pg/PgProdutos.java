@@ -21,133 +21,142 @@ import java.sql.Types;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.LongFunction;
+import java.util.logging.Logger;
 import javax.sql.DataSource;
+import org.postgresql.util.PSQLException;
+import org.postgresql.util.PSQLState;
 
 public final class PgProdutos implements Produtos {
 
-    private final DataSource banco;
-    private final LongFunction<Produto> produtoPorCodigo;
-    private final Categorias categorias;
+  private static final Logger LOG = Logger.getLogger(PgProdutos.class.getName());
 
-    public PgProdutos(DataSource banco) {
-        this(banco, codigo -> new PgProduto(banco, codigo));
-    }
+  private final DataSource banco;
+  private final LongFunction<Produto> produtoPorCodigo;
+  private final Categorias categorias;
 
-    public PgProdutos(DataSource banco, LongFunction<Produto> produtoPorCodigo) {
-        this(banco, produtoPorCodigo, new PgCategorias(banco));
-    }
+  public PgProdutos(DataSource banco) {
+    this(banco, codigo -> new PgProduto(banco, codigo));
+  }
 
-    PgProdutos(DataSource banco, LongFunction<Produto> produtoPorCodigo, Categorias categorias) {
-        this.banco = banco;
-        this.produtoPorCodigo = produtoPorCodigo;
-        this.categorias = categorias;
-    }
+  public PgProdutos(DataSource banco, LongFunction<Produto> produtoPorCodigo) {
+    this(banco, produtoPorCodigo, new PgCategorias(banco));
+  }
 
-    @Override
-    public Produto produto(long codigo) throws FalhaProduto {
-        validarCodigo(codigo);
-        try (Connection conexao = this.banco.getConnection();
-             PreparedStatement consulta = conexao.prepareStatement(
-                 "SELECT codigo FROM public.produto WHERE codigo = ?"
-             )) {
-            consulta.setLong(1, codigo);
-            try (ResultSet resultado = consulta.executeQuery()) {
-                if (!resultado.next()) {
-                    throw new FalhaProduto(FalhaProduto.Motivo.PRODUTO_AUSENTE);
-                }
-                return this.produtoPorCodigo.apply(resultado.getLong("codigo"));
-            }
-        } catch (SQLException falha) {
-            throw new FalhaProduto(FalhaProduto.Motivo.PERSISTENCIA_INDISPONIVEL, falha);
+  PgProdutos(DataSource banco, LongFunction<Produto> produtoPorCodigo, Categorias categorias) {
+    this.banco = banco;
+    this.produtoPorCodigo = produtoPorCodigo;
+    this.categorias = categorias;
+  }
+
+  @Override
+  public Produto produto(long codigo) throws FalhaProduto {
+    validarCodigo(codigo);
+    try (Connection conexao = this.banco.getConnection();
+      PreparedStatement consulta = conexao.prepareStatement(
+        "SELECT codigo FROM public.produto WHERE codigo = ?"
+      )) {
+      consulta.setLong(1, codigo);
+      try (ResultSet resultado = consulta.executeQuery()) {
+        if (!resultado.next()) {
+          throw new FalhaProduto(FalhaProduto.Motivo.PRODUTO_AUSENTE);
         }
+        return this.produtoPorCodigo.apply(resultado.getLong("codigo"));
+      }
+    } catch (SQLException falha) {
+      throw new FalhaProduto(FalhaProduto.Motivo.PERSISTENCIA_INDISPONIVEL, falha);
     }
+  }
 
-    @Override
-    public List<Produto> listar(FiltrosProdutos filtros) throws FalhaProduto {
-        return new ConsultaSqlDeProdutos(this.banco).listar("codigo", filtros,
-            resultado -> this.produtoPorCodigo.apply(resultado.getLong("codigo")));
+  @Override
+  public List<Produto> listar(FiltrosProdutos filtros) throws FalhaProduto {
+    return new ConsultaSqlDeProdutos(this.banco).listar("codigo", filtros,
+      resultado -> this.produtoPorCodigo.apply(resultado.getLong("codigo")));
+  }
+
+  @Override
+  public Produto cadastrar(NomeProduto nome, PrecificacaoParaCadastro cadastroValidado,
+              Optional<CodigoCategoria> codigoCategoria) throws FalhaProduto {
+    if (codigoCategoria.isPresent()) {
+      this.validarCategoria(codigoCategoria.orElseThrow());
     }
-
-    @Override
-    public Produto cadastrar(NomeProduto nome, PrecificacaoParaCadastro cadastroValidado,
-                             Optional<CodigoCategoria> codigoCategoria) throws FalhaProduto {
-        if (codigoCategoria.isPresent()) {
-            this.validarCategoria(codigoCategoria.orElseThrow());
+    Precificacao precificacao = cadastroValidado.precificacao();
+    try (Connection conexao = this.banco.getConnection();
+      PreparedStatement cadastro = conexao.prepareStatement("""
+        INSERT INTO public.produto
+          (nome, custo, preco_venda, percentual, modalidade_precificacao, categoria_codigo)
+        VALUES (?, ?, ?, ?, ?, ?)
+        RETURNING codigo, nome, custo, preco_venda, percentual, modalidade_precificacao, categoria_codigo
+        """)) {
+      cadastro.setString(1, nome.valor());
+      cadastro.setBigDecimal(2, precificacao.custo().valor());
+      cadastro.setBigDecimal(3, precificacao.precoVenda().valor());
+      cadastro.setBigDecimal(4, precificacao.percentual().valor());
+      cadastro.setString(5, precificacao.modalidade().name());
+      cadastro.setObject(6, codigoCategoria.map(CodigoCategoria::valor).orElse(null), Types.BIGINT);
+      try (ResultSet resultado = cadastro.executeQuery()) {
+        if (!resultado.next()) {
+          throw new SQLException("O cadastro não retornou o produto.");
         }
-        Precificacao precificacao = cadastroValidado.precificacao();
-        try (Connection conexao = this.banco.getConnection();
-             PreparedStatement cadastro = conexao.prepareStatement("""
-                 INSERT INTO public.produto
-                     (nome, custo, preco_venda, percentual, modalidade_precificacao, categoria_codigo)
-                 VALUES (?, ?, ?, ?, ?, ?)
-                 RETURNING codigo, nome, custo, preco_venda, percentual, modalidade_precificacao, categoria_codigo
-                 """)) {
-            cadastro.setString(1, nome.valor());
-            cadastro.setBigDecimal(2, precificacao.custo().valor());
-            cadastro.setBigDecimal(3, precificacao.precoVenda().valor());
-            cadastro.setBigDecimal(4, precificacao.percentual().valor());
-            cadastro.setString(5, precificacao.modalidade().name());
-            cadastro.setObject(6, codigoCategoria.map(CodigoCategoria::valor).orElse(null), Types.BIGINT);
-            try (ResultSet resultado = cadastro.executeQuery()) {
-                if (!resultado.next()) {
-                    throw new SQLException("O cadastro não retornou o produto.");
-                }
-                return new ResultadoSqlDeProduto(resultado, this.produtoPorCodigo).produto();
-            }
-        } catch (SQLException falha) {
-            throw falhaAoGravar(falha, codigoCategoria.isPresent());
-        }
+        return new ResultadoSqlDeProduto(resultado, this.produtoPorCodigo).produto();
+      }
+    } catch (SQLException falha) {
+      throw falhaAoGravar(falha, codigoCategoria.isPresent());
     }
+  }
 
-    @Override
-    public Produto vincularCategoria(long codigo, CodigoCategoria codigoCategoria) throws FalhaProduto {
-        validarCodigo(codigo);
-        this.validarCategoria(codigoCategoria);
-        try (Connection conexao = this.banco.getConnection();
-             PreparedStatement atualizacao = conexao.prepareStatement("""
-                 UPDATE public.produto SET categoria_codigo = ? WHERE codigo = ?
-                 RETURNING codigo, nome, custo, preco_venda, percentual, modalidade_precificacao, categoria_codigo
-                 """)) {
-            atualizacao.setLong(1, codigoCategoria.valor());
-            atualizacao.setLong(2, codigo);
-            try (ResultSet resultado = atualizacao.executeQuery()) {
-                if (!resultado.next()) {
-                    throw new FalhaProduto(FalhaProduto.Motivo.PRODUTO_AUSENTE);
-                }
-                return new ResultadoSqlDeProduto(resultado, this.produtoPorCodigo).produto();
-            }
-        } catch (SQLException falha) {
-            throw falhaAoGravar(falha, true);
+  @Override
+  public Produto vincularCategoria(long codigo, CodigoCategoria codigoCategoria) throws FalhaProduto {
+    validarCodigo(codigo);
+    this.validarCategoria(codigoCategoria);
+    try (Connection conexao = this.banco.getConnection();
+      PreparedStatement atualizacao = conexao.prepareStatement("""
+        UPDATE public.produto SET categoria_codigo = ? WHERE codigo = ?
+        RETURNING codigo, nome, custo, preco_venda, percentual, modalidade_precificacao, categoria_codigo
+        """)) {
+      atualizacao.setLong(1, codigoCategoria.valor());
+      atualizacao.setLong(2, codigo);
+      try (ResultSet resultado = atualizacao.executeQuery()) {
+        if (!resultado.next()) {
+          throw new FalhaProduto(FalhaProduto.Motivo.PRODUTO_AUSENTE);
         }
+        return new ResultadoSqlDeProduto(resultado, this.produtoPorCodigo).produto();
+      }
+    } catch (SQLException falha) {
+      throw falhaAoGravar(falha, true);
     }
+  }
 
-    @Override
-    public Produto alterarPrecificacao(long codigo, ValoresParaPrecificar valores)
-        throws FalhaProduto, PrecificacaoInvalida {
-        validarCodigo(codigo);
-        return new AlteracaoSqlDePrecificacao(this.banco, this.produtoPorCodigo).alterar(codigo, valores);
-    }
+  @Override
+  public Produto alterarPrecificacao(long codigo, ValoresParaPrecificar valores)
+    throws FalhaProduto, PrecificacaoInvalida {
+    validarCodigo(codigo);
+    return new AlteracaoSqlDePrecificacao(this.banco, this.produtoPorCodigo).alterar(codigo, valores);
+  }
 
-    private static void validarCodigo(long codigo) throws FalhaProduto {
-        if (codigo <= 0) {
-            throw new FalhaProduto(FalhaProduto.Motivo.CODIGO_INVALIDO);
-        }
+  private static void validarCodigo(long codigo) throws FalhaProduto {
+    if (codigo <= 0) {
+      throw new FalhaProduto(FalhaProduto.Motivo.CODIGO_INVALIDO);
     }
+  }
 
-    private void validarCategoria(CodigoCategoria codigoCategoria) throws FalhaProduto {
-        try {
-            if (!this.categorias.existe(codigoCategoria)) {
-                throw new FalhaProduto(FalhaProduto.Motivo.CATEGORIA_AUSENTE);
-            }
-        } catch (FalhaCategoria falha) {
-            throw new FalhaProduto(FalhaProduto.Motivo.PERSISTENCIA_INDISPONIVEL, falha);
-        }
+  private void validarCategoria(CodigoCategoria codigoCategoria) throws FalhaProduto {
+    try {
+      if (!this.categorias.existe(codigoCategoria)) {
+        throw new FalhaProduto(FalhaProduto.Motivo.CATEGORIA_AUSENTE);
+      }
+    } catch (FalhaCategoria falha) {
+      throw new FalhaProduto(FalhaProduto.Motivo.PERSISTENCIA_INDISPONIVEL, falha);
     }
+  }
 
-    private static FalhaProduto falhaAoGravar(SQLException falha, boolean comCategoria) {
-        if (comCategoria && "23503".equals(falha.getSQLState())) {
-            return new FalhaProduto(FalhaProduto.Motivo.CATEGORIA_AUSENTE, falha);
-        }
-        return new FalhaProduto(FalhaProduto.Motivo.PERSISTENCIA_INDISPONIVEL, falha);
+  private static FalhaProduto falhaAoGravar(SQLException falha, boolean comCategoria) {
+    if (comCategoria && falha instanceof PSQLException postgres
+      && PSQLState.FOREIGN_KEY_VIOLATION.getState().equals(postgres.getSQLState())
+      && postgres.getServerErrorMessage() != null
+      && "produto_categoria_codigo_fkey".equals(postgres.getServerErrorMessage().getConstraint())) {
+      return new FalhaProduto(FalhaProduto.Motivo.CATEGORIA_AUSENTE, falha);
     }
+    LOG.severe("Falha ao gravar produto (SQLState: " + falha.getSQLState() + ").");
+    return new FalhaProduto(FalhaProduto.Motivo.PERSISTENCIA_INDISPONIVEL, falha);
+  }
 }

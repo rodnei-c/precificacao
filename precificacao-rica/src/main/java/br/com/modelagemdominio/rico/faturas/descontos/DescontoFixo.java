@@ -2,6 +2,7 @@ package br.com.modelagemdominio.rico.faturas.descontos;
 
 import br.com.modelagemdominio.rico.faturas.FaturaInvalida;
 import java.math.BigDecimal;
+import java.util.Optional;
 
 /** Desconto que preserva o valor contratado e limita o abatimento ao subtotal atual. */
 public final class DescontoFixo implements Desconto {
@@ -34,5 +35,22 @@ public final class DescontoFixo implements Desconto {
   @Override
   public BigDecimal valorAplicado(BigDecimal subtotal) {
     return this.valorOriginal.min(subtotal);
+  }
+
+  /**
+   * @param subtotal soma inicial dos itens, sem arredondamento
+   * @throws FaturaInvalida quando o valor contratado superar o subtotal inicial
+   */
+  @Override
+  public void validarSubtotalInicial(BigDecimal subtotal) {
+    if (this.valorOriginal.compareTo(subtotal) > 0) {
+      throw new FaturaInvalida("O desconto fixo não pode ultrapassar o subtotal inicial da fatura.");
+    }
+  }
+
+  /** @return representação do valor original, mesmo quando o abatimento tiver sido limitado */
+  @Override
+  public Optional<DescontoContratado> registro() {
+    return Optional.of(new DescontoContratado(TipoDesconto.VALOR_FIXO, this.valorOriginal));
   }
 }

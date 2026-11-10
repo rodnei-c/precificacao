@@ -20,6 +20,11 @@ spring:
       enum:
         fail-on-numbers-for-enums: true
 
+precificacao:
+  banco:
+    criar-automaticamente: ${DB_CREATE_ENABLED:true}
+    manutencao: ${DB_MAINTENANCE_DATABASE:postgres}
+
 server:
   address: ${SERVER_ADDRESS:127.0.0.1}
   port: ${SERVER_PORT:8080}

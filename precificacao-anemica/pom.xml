@@ -79,7 +79,68 @@
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-surefire-plugin</artifactId>
         <version>3.5.4</version>
+        <configuration>
+          <excludedGroups>integracao</excludedGroups>
+          <failIfNoTests>true</failIfNoTests>
+        </configuration>
       </plugin>
     </plugins>
   </build>
+
+  <profiles>
+    <profile>
+      <id>integracao</id>
+      <properties>
+        <maven.build.timestamp.format>yyyyMMdd-HHmmssSSS</maven.build.timestamp.format>
+      </properties>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-surefire-plugin</artifactId>
+            <configuration>
+              <excludedGroups combine.self="override" />
+              <reportsDirectory>${project.build.directory}/surefire-integracao/${maven.build.timestamp}</reportsDirectory>
+              <reportNameSuffix>integracao</reportNameSuffix>
+              <testFailureIgnore>false</testFailureIgnore>
+            </configuration>
+          </plugin>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-antrun-plugin</artifactId>
+            <version>3.2.0</version>
+            <executions>
+              <execution>
+                <id>validar-configuracao-integracao</id>
+                <phase>validate</phase>
+                <goals>
+                  <goal>run</goal>
+                </goals>
+                <configuration>
+                  <target>
+                    <ant antfile="${project.basedir}/src/test/ant/integracao.xml" target="validar-ambiente" />
+                  </target>
+                </configuration>
+              </execution>
+              <execution>
+                <id>conferir-execucao-integracao</id>
+                <phase>test</phase>
+                <goals>
+                  <goal>run</goal>
+                </goals>
+                <configuration>
+                  <target>
+                    <ant antfile="${project.basedir}/src/test/ant/integracao.xml" target="conferir-relatorios">
+                      <property name="diretorio.relatorios" value="${project.build.directory}/surefire-integracao/${maven.build.timestamp}" />
+                      <property name="diretorio.classes.teste" value="${project.build.testOutputDirectory}" />
+                    </ant>
+                  </target>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+  </profiles>
 </project>

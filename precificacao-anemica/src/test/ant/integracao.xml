@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project name="validacao-integracao">
+  <target name="validar-ambiente">
+    <property environment="ambiente" />
+    <fail message="Defina BANCO_TESTE_URL com a URL JDBC PostgreSQL do banco exclusivo de testes.">
+      <condition>
+        <not>
+          <and>
+            <isset property="ambiente.BANCO_TESTE_URL" />
+            <matches string="${ambiente.BANCO_TESTE_URL}" pattern="^jdbc:postgresql:.+$" />
+          </and>
+        </not>
+      </condition>
+    </fail>
+    <fail message="Defina BANCO_CRIACAO_TESTE_URL com a URL JDBC PostgreSQL de manutenção do servidor exclusivo de testes.">
+      <condition>
+        <not>
+          <and>
+            <isset property="ambiente.BANCO_CRIACAO_TESTE_URL" />
+            <matches string="${ambiente.BANCO_CRIACAO_TESTE_URL}" pattern="^jdbc:postgresql:.+$" />
+          </and>
+        </not>
+      </condition>
+    </fail>
+    <fail message="Defina BANCO_TESTE_USUARIO para a validação de integração.">
+      <condition>
+        <not>
+          <and>
+            <isset property="ambiente.BANCO_TESTE_USUARIO" />
+            <matches string="${ambiente.BANCO_TESTE_USUARIO}" pattern=".*\S.*" />
+          </and>
+        </not>
+      </condition>
+    </fail>
+    <fail message="Defina BANCO_TESTE_SENHA para a validação de integração.">
+      <condition>
+        <not>
+          <isset property="ambiente.BANCO_TESTE_SENHA" />
+        </not>
+      </condition>
+    </fail>
+    <fail message="O perfil integracao exige a execução dos testes e a verificação das falhas; remova as opções que os pulam ou ignoram seus resultados.">
+      <condition>
+        <or>
+          <istrue value="${skipTests}" />
+          <istrue value="${maven.test.skip}" />
+          <istrue value="${maven.test.skip.exec}" />
+          <istrue value="${maven.test.failure.ignore}" />
+        </or>
+      </condition>
+    </fail>
+    <fail message="O perfil integracao valida a suíte completa; remova os filtros de seleção de testes.">
+      <condition>
+        <or>
+          <isset property="test" />
+          <isset property="groups" />
+          <isset property="excludedGroups" />
+          <isset property="surefire.includesFile" />
+          <isset property="surefire.excludesFile" />
+        </or>
+      </condition>
+    </fail>
+  </target>
+
+  <target name="conferir-relatorios">
+    <java classname="br.com.precificacao.anemico.testes.VerificarIntegracao" fork="true" failonerror="true">
+      <classpath>
+        <pathelement location="${diretorio.classes.teste}" />
+      </classpath>
+      <arg value="${diretorio.relatorios}" />
+      <arg value="br.com.precificacao.anemico.AplicacaoPostgresTest" />
+      <arg value="br.com.precificacao.anemico.CadastrosPostgresTest" />
+      <arg value="br.com.precificacao.anemico.repositories.PostgresProdutoRepositoryTest" />
+      <arg value="br.com.precificacao.anemico.repositories.impl.CriacaoBancoPostgresTest" />
+    </java>
+  </target>
+</project>

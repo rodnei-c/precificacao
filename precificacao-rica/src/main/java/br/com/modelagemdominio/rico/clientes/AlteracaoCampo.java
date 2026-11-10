@@ -1,26 +1,30 @@
 package br.com.modelagemdominio.rico.clientes;
 
-import java.util.Objects;
 import java.util.Optional;
+import java.util.function.Function;
 
-public record AlteracaoCampo<T>(boolean informada, Optional<T> valor) {
+/**
+ * Operação sobre um campo opcional: preservar, remover ou substituir.
+ *
+ * @param <T> tipo do valor aceito pelo campo
+ */
+public interface AlteracaoCampo<T> {
 
-    public AlteracaoCampo {
-        Objects.requireNonNull(valor);
-        if (!informada && valor.isPresent()) {
-            throw new IllegalArgumentException("Um campo omitido não pode ter valor.");
-        }
-    }
+  /**
+   * @param preservado resultado mantido quando o campo foi omitido
+   * @param informado operação executada somente para remoção ou substituição
+   * @param <R> tipo do resultado da operação
+   * @return resultado preservado ou produzido pela operação informada
+   */
+  <R> R aplicar(R preservado, Function<Optional<T>, R> informado);
 
-    public static <T> AlteracaoCampo<T> preservar() {
-        return new AlteracaoCampo<>(false, Optional.empty());
-    }
+  /** @return se a operação foi solicitada, inclusive para remoção do valor */
+  default boolean informada() {
+    return this.aplicar(false, valor -> true);
+  }
 
-    public static <T> AlteracaoCampo<T> remover() {
-        return new AlteracaoCampo<>(true, Optional.empty());
-    }
-
-    public static <T> AlteracaoCampo<T> substituir(T valor) {
-        return new AlteracaoCampo<>(true, Optional.of(valor));
-    }
+  /** @return novo valor na substituição; ausência na preservação ou remoção */
+  default Optional<T> valor() {
+    return this.aplicar(Optional.empty(), Function.identity());
+  }
 }

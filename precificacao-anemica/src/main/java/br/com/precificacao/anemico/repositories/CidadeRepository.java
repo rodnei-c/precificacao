@@ -9,7 +9,8 @@ public interface CidadeRepository {
 
   Optional<Cidade> inserir(String nome, UnidadeFederativa uf);
 
-  List<Cidade> listar();
+  /** @return cidades que atendem a todos os filtros informados, em ordem de código */
+  List<Cidade> listar(String nome, UnidadeFederativa uf);
 
   boolean existePorCodigo(Long codigo);
 }

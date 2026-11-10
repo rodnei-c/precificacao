@@ -2,6 +2,7 @@ package br.com.modelagemdominio.rico.faturas.descontos;
 
 import br.com.modelagemdominio.rico.faturas.FaturaInvalida;
 import java.math.BigDecimal;
+import java.util.Optional;
 
 /** Desconto percentual sobre a soma dos itens, sem valor mínimo de fatura. */
 public final class DescontoPercentual implements Desconto {
@@ -35,5 +36,11 @@ public final class DescontoPercentual implements Desconto {
   @Override
   public BigDecimal valorAplicado(BigDecimal subtotal) {
     return subtotal.multiply(this.percentual).movePointLeft(2);
+  }
+
+  /** @return representação do percentual contratado, inclusive quando for zero */
+  @Override
+  public Optional<DescontoContratado> registro() {
+    return Optional.of(new DescontoContratado(TipoDesconto.PERCENTUAL, this.percentual));
   }
 }

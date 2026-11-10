@@ -2,9 +2,13 @@ package br.com.modelagemdominio.rico.faturas.descontos;
 
 import br.com.modelagemdominio.rico.faturas.FaturaInvalida;
 import java.math.BigDecimal;
+import java.util.Optional;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -73,5 +77,54 @@ class DescontosTest {
   void rejeitaDescontoAusente() {
     assertThrows(FaturaInvalida.class, () -> new DescontoFixo(null));
     assertThrows(FaturaInvalida.class, () -> new DescontoPercentual(null));
+  }
+
+  @ParameterizedTest
+  @MethodSource("descontosRegistrados")
+  void reconstituiComportamentoSemPerderOriginalOuConfundirZeroComAusencia(
+    Desconto desconto, Optional<TipoDesconto> tipo, BigDecimal original, BigDecimal subtotal, BigDecimal aplicado
+  ) {
+    var registro = desconto.registro();
+    assertEquals(tipo, registro.map(DescontoContratado::tipo));
+    assertEquals(Optional.ofNullable(original), registro.map(DescontoContratado::valor));
+
+    Desconto reconstituido = new DescontoReconstituido(registro);
+
+    assertEquals(aplicado, reconstituido.valorAplicado(subtotal));
+    assertEquals(registro, reconstituido.registro());
+  }
+
+  @Test
+  void reconstituicaoPreservaLimiteDoDescontoFixoNoSubtotalInicial() {
+    var registro = new DescontoContratado(TipoDesconto.VALOR_FIXO, new BigDecimal("30.00"));
+    Desconto desconto = new DescontoReconstituido(registro);
+
+    desconto.validarSubtotalInicial(new BigDecimal("30.00"));
+    var falha = assertThrows(FaturaInvalida.class,
+      () -> desconto.validarSubtotalInicial(new BigDecimal("12.3456")));
+
+    assertEquals("O desconto fixo não pode ultrapassar o subtotal inicial da fatura.", falha.getMessage());
+  }
+
+  private static Stream<Arguments> descontosRegistrados() {
+    return Stream.of(
+      Arguments.of(new SemDesconto(), Optional.empty(), null, BigDecimal.TEN, BigDecimal.ZERO),
+      Arguments.of(new DescontoFixo(BigDecimal.ZERO), Optional.of(TipoDesconto.VALOR_FIXO),
+        BigDecimal.ZERO, BigDecimal.TEN, BigDecimal.ZERO),
+      Arguments.of(new DescontoPercentual(BigDecimal.ZERO), Optional.of(TipoDesconto.PERCENTUAL),
+        BigDecimal.ZERO, new BigDecimal("100"), new BigDecimal("0.00")),
+      Arguments.of(new DescontoFixo(new BigDecimal("30.00")), Optional.of(TipoDesconto.VALOR_FIXO),
+        new BigDecimal("30.00"), new BigDecimal("12.3456"), new BigDecimal("12.3456")),
+      Arguments.of(new DescontoPercentual(new BigDecimal("12.3456")), Optional.of(TipoDesconto.PERCENTUAL),
+        new BigDecimal("12.3456"), new BigDecimal("0.151782"), new BigDecimal("0.018738398592"))
+    );
+  }
+
+  @Test
+  void rejeitaRegistroInvalidoAntesDaReconstituicao() {
+    assertThrows(FaturaInvalida.class, () -> new DescontoContratado(null, BigDecimal.ZERO));
+    assertThrows(FaturaInvalida.class, () -> new DescontoContratado(TipoDesconto.VALOR_FIXO, null));
+    assertThrows(FaturaInvalida.class,
+      () -> new DescontoContratado(TipoDesconto.PERCENTUAL, new BigDecimal("100.0001")));
   }
 }

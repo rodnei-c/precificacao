@@ -16,7 +16,9 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.api.io.TempDir;
 import tools.jackson.databind.json.JsonMapper;
 
@@ -25,7 +27,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
-@EnabledIfEnvironmentVariable(named = "RICO_BANCO_TESTE_URL", matches = "jdbc:postgresql:.*")
+@Tag("integracao")
 class ApiProdutosTest {
 
     private static final Pattern ENDERECO = Pattern.compile("http://127\\.0\\.0\\.1:\\d+");
@@ -33,8 +35,9 @@ class ApiProdutosTest {
     @TempDir
     Path temporario;
 
-    @Test
-    void cadastraProdutoEConsultaPeloLocation() throws Exception {
+    @ParameterizedTest
+    @CsvSource({"ACRESCIMO_SOBRE_CUSTO, 120.00", "MARGEM_SOBRE_VENDA, 125.00"})
+    void cadastraProdutoEConsultaPeloLocation(String modalidade, String precoVenda) throws Exception {
         String nome = "Café d'origem " + UUID.randomUUID();
         Path log = this.temporario.resolve("api.log");
         Process api = iniciarApi(log);
@@ -51,9 +54,9 @@ class ApiProdutosTest {
                             "nome": "  %s  ",
                             "custo": 100,
                             "percentual": 20,
-                            "modalidadePrecificacao": "MARGEM_SOBRE_VENDA"
+                            "modalidadePrecificacao": "%s"
                         }
-                        """.formatted(nome)))
+                        """.formatted(nome, modalidade)))
                     .build(),
                 HttpResponse.BodyHandlers.ofString()
             );
@@ -69,11 +72,11 @@ class ApiProdutosTest {
                     "codigo": %d,
                     "nome": "%s",
                     "custo": 100.00,
-                    "precoVenda": 125.00,
+                    "precoVenda": %s,
                     "percentual": 20.0000,
-                    "modalidadePrecificacao": "MARGEM_SOBRE_VENDA"
+                    "modalidadePrecificacao": "%s"
                 }
-                """.formatted(codigo, nome)), produto);
+                """.formatted(codigo, nome, precoVenda, modalidade)), produto);
 
             HttpResponse<String> consulta = cliente.send(
                 HttpRequest.newBuilder(endereco.resolve(location))

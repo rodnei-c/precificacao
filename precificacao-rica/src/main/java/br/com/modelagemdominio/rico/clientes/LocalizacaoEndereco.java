@@ -4,10 +4,10 @@ import java.util.Optional;
 
 public record LocalizacaoEndereco(String logradouro, String numero, String bairro, Optional<String> complemento) {
 
-    public LocalizacaoEndereco {
-        logradouro = TextoCliente.obrigatorio("logradouro", logradouro, 200);
-        numero = TextoCliente.obrigatorio("número", numero, 20);
-        bairro = TextoCliente.obrigatorio("bairro", bairro, 100);
-        complemento = TextoCliente.opcional("complemento", complemento, 100);
-    }
+  public LocalizacaoEndereco {
+    logradouro = new TextoObrigatorio("logradouro", logradouro, 200).valor();
+    numero = new TextoObrigatorio("número", numero, 20).valor();
+    bairro = new TextoObrigatorio("bairro", bairro, 100).valor();
+    complemento = new TextoOpcional("complemento", complemento, 100).valor();
+  }
 }

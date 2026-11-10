@@ -5,6 +5,7 @@ import br.com.precificacao.anemico.models.Cidade;
 import br.com.precificacao.anemico.repositories.CidadeRepository;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -29,8 +30,19 @@ public class JdbcCidadeRepository implements CidadeRepository {
   }
 
   @Override
-  public List<Cidade> listar() {
-    return jdbcTemplate.query("SELECT codigo, nome, uf FROM cidade ORDER BY codigo", this::mapear);
+  public List<Cidade> listar(String nome, UnidadeFederativa uf) {
+    StringBuilder sql = new StringBuilder("SELECT codigo, nome, uf FROM cidade WHERE TRUE");
+    List<Object> parametros = new ArrayList<>();
+    if (nome != null) {
+      sql.append(" AND STRPOS(LOWER(nome), LOWER(?)) > 0");
+      parametros.add(nome);
+    }
+    if (uf != null) {
+      sql.append(" AND uf = ?");
+      parametros.add(uf.name());
+    }
+    sql.append(" ORDER BY codigo");
+    return jdbcTemplate.query(sql.toString(), this::mapear, parametros.toArray());
   }
 
   @Override

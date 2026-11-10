@@ -12,7 +12,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
+import org.junit.jupiter.api.Tag;
 import org.postgresql.ds.PGSimpleDataSource;
 import org.takes.Take;
 import org.takes.facets.fork.FkRegex;
@@ -61,7 +61,7 @@ class ListaCategoriasTest {
     }
 
     @Test
-    @EnabledIfEnvironmentVariable(named = "RICO_BANCO_TESTE_URL", matches = "jdbc:postgresql:.*")
+    @Tag("integracao")
     void listaPorCodigoMesmoQuandoOsRegistrosSaoInseridosEmOutraOrdem() throws Exception {
         PGSimpleDataSource banco = new PGSimpleDataSource();
         banco.setURL(System.getenv("RICO_BANCO_TESTE_URL"));

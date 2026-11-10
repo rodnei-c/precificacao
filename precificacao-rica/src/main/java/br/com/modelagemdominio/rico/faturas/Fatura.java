@@ -7,7 +7,7 @@ import java.util.List;
 
 /**
  * Contrato de uma fatura identificada, com itens e um único desconto.
- * A implementação da entidade e sua persistência ficam para a próxima etapa.
+ * A coleção PostgreSQL materializa os valores de cada operação.
  */
 public interface Fatura {
 
@@ -33,14 +33,42 @@ public interface Fatura {
   Desconto desconto() throws FalhaFatura;
 
   /**
+   * @return cliente e modalidade de pagamento opcionais
+   * @throws FalhaFatura quando os vínculos não puderem ser consultados
+   */
+  VinculosFatura vinculos() throws FalhaFatura;
+
+  /**
+   * Deve ser chamado uma vez para compor uma resposta com itens e totais da mesma leitura.
+   *
+   * @return valores do cálculo, sem nova consulta ao acessar seus campos
+   * @throws FalhaFatura quando a fatura ou os produtos não puderem ser consultados
+   */
+  default ValoresFatura valores() throws FalhaFatura {
+    return new CalculoFatura(this.itens(), this.desconto()).calcular();
+  }
+
+  /**
    * @return soma dos subtotais com os preços atuais, sem arredondamento
    * @throws FalhaFatura quando a fatura ou seus produtos não puderem ser consultados
    */
-  BigDecimal subtotal() throws FalhaFatura;
+  default BigDecimal subtotal() throws FalhaFatura {
+    return this.valores().subtotal();
+  }
+
+  /**
+   * @return desconto aplicável aos preços atuais, sem arredondamento
+   * @throws FalhaFatura quando a fatura ou seus produtos não puderem ser consultados
+   */
+  default BigDecimal descontoAplicado() throws FalhaFatura {
+    return this.valores().descontoAplicado();
+  }
 
   /**
    * @return subtotal menos o desconto aplicado, arredondado para duas casas com HALF_EVEN
    * @throws FalhaFatura quando a fatura ou seus produtos não puderem ser consultados
    */
-  BigDecimal total() throws FalhaFatura;
+  default BigDecimal total() throws FalhaFatura {
+    return this.valores().total();
+  }
 }

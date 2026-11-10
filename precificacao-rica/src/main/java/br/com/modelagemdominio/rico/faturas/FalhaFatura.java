@@ -7,6 +7,8 @@ public final class FalhaFatura extends Exception {
   public enum Motivo {
     CODIGO_INVALIDO,
     FATURA_AUSENTE,
+    PRODUTO_AUSENTE,
+    CLIENTE_AUSENTE,
     DADOS_INVALIDOS,
     PERSISTENCIA_INDISPONIVEL
   }
@@ -26,6 +28,8 @@ public final class FalhaFatura extends Exception {
     super(switch (motivo) {
       case CODIGO_INVALIDO -> "O código da fatura deve ser maior que zero.";
       case FATURA_AUSENTE -> "Fatura não encontrada.";
+      case PRODUTO_AUSENTE -> "Produto não encontrado.";
+      case CLIENTE_AUSENTE -> "Cliente não encontrado.";
       case DADOS_INVALIDOS -> "Os dados da fatura são inválidos.";
       case PERSISTENCIA_INDISPONIVEL -> "Não foi possível acessar os dados da fatura.";
     }, causa);

@@ -1,29 +1,28 @@
 package br.com.modelagemdominio.rico.categorias;
 
+import br.com.modelagemdominio.rico.numeros.InteiroExato;
 import java.math.BigDecimal;
 
+/** Identificação positiva de categoria, com conversão decimal exata por composição. */
 public record CodigoCategoria(long valor) {
 
-    private static final String INVALIDO = "Informe um código de categoria inteiro positivo válido.";
+  private static final String INVALIDO = "Informe um código de categoria inteiro positivo válido.";
 
-    public CodigoCategoria(BigDecimal valor) {
-        this(inteiroExato(valor));
-    }
+  /**
+   * @param valor código decimal que represente um inteiro positivo no limite de long
+   * @throws IllegalArgumentException quando faltar código ou a conversão exata não for válida
+   */
+  public CodigoCategoria(BigDecimal valor) {
+    this(new InteiroExato(valor, INVALIDO).valor());
+  }
 
-    public CodigoCategoria {
-        if (valor <= 0) {
-            throw new IllegalArgumentException(INVALIDO);
-        }
+  /**
+   * @param valor identificação positiva da categoria
+   * @throws IllegalArgumentException quando o código não for positivo
+   */
+  public CodigoCategoria {
+    if (valor <= 0) {
+      throw new IllegalArgumentException(INVALIDO);
     }
-
-    private static long inteiroExato(BigDecimal valor) {
-        if (valor == null) {
-            throw new IllegalArgumentException(INVALIDO);
-        }
-        try {
-            return valor.longValueExact();
-        } catch (ArithmeticException falha) {
-            throw new IllegalArgumentException(INVALIDO, falha);
-        }
-    }
+  }
 }

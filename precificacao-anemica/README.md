@@ -1,15 +1,17 @@
 # Precificação anêmica
 
-API HTTP de cadastro, consulta e alteração da precificação de produtos e criação e consulta de faturas, com Java 17, Spring Boot 4.1.2, JDBC, PostgreSQL e Flyway.
+API HTTP de produtos, precificação, faturas, categorias, cidades e clientes, com Java 17, Spring Boot 4.1.2, JDBC, PostgreSQL e Flyway.
+
+A [validação de equivalência com o rico](../documentacao/Validacao-Equivalencia-Modelos.md) foi concluída na etapa 21. Nesta rodada, o anêmico passou em 84 casos sem banco e 159 na suíte completa, sem falhas, erros ou ignorados. A suíte completa inclui os casos sem banco.
 
 ## Responsabilidades
 
 - Controller: recebe JSON, lê o código da URL e define a resposta HTTP.
-- Service: valida o cadastro, executa as fórmulas e decide se o produto pode ser gravado.
-- Repository: executa SQL parametrizado e converte os registros do banco em dados de produto.
+- Service: valida os dados, executa as regras de negócio e coordena as transações.
+- Repository: executa SQL parametrizado e mapeia os registros do banco.
 - Model: mantém dados, construtores e getters/setters, sem regras de negócio.
 
-Os contratos dos serviços ficam em `services`, e suas implementações em `services/impl`: `ProdutoServiceImpl`, `PrecificacaoServiceImpl` e `FaturaServiceImpl`. Os controllers recebem as interfaces dos serviços.
+Os contratos dos serviços ficam em `services`, e suas implementações em `services/impl`: `ProdutoServiceImpl`, `PrecificacaoServiceImpl`, `FaturaServiceImpl`, `CategoriaServiceImpl`, `CidadeServiceImpl` e `ClienteServiceImpl`. Os controllers recebem as interfaces dos serviços.
 
 As interfaces de repositório ficam em `repositories`. As implementações JDBC em `repositories/impl` executam o acesso ao PostgreSQL.
 
@@ -26,7 +28,7 @@ docker compose up -d postgres
 
 O Compose cria o banco precificacao_anemica e mantém seus dados em um volume. Usa a porta local 5432; se ela já estiver ocupada, ajuste a publicação em compose.yml e a variável DB_URL da aplicação.
 
-Se utilizar um PostgreSQL existente, crie um banco separado para o projeto e configure:
+Se utilizar um PostgreSQL existente, configure a conexão. A aplicação cria o banco indicado em DB_URL quando ele ainda não existe:
 
 ~~~powershell
 $env:DB_URL = "jdbc:postgresql://localhost:5432/precificacao_anemica"
@@ -36,7 +38,11 @@ $env:DB_PASSWORD = "senha-do-banco"
 
 A aplicação lê essas variáveis do processo que a inicia. Para manter a senha entre execuções locais, crie `precificacao-anemica/.env.anemico` com uma linha `DB_PASSWORD=sua-senha-local`. O módulo carrega esse arquivo opcional, que o Git ignora. Uma variável `DB_PASSWORD` definida no terminal tem prioridade sobre o arquivo.
 
-Ao iniciar, o Flyway aplica as migrações em `src/main/resources/db/migration`, que criam as tabelas `produto`, `fatura`, `item_fatura`, `historico_precificacao`, `categoria`, `cidade` e `cliente`. Prepare o servidor e o banco PostgreSQL antes de iniciar a aplicação para que o Flyway possa criar as tabelas.
+Ao iniciar, a aplicação tenta conectar ao banco configurado. Se o PostgreSQL informar que ele não existe, a aplicação conecta ao banco de manutenção `postgres` no mesmo servidor e cria o banco com o mesmo usuário e senha. O usuário precisa ser superusuário ou possuir a permissão `CREATEDB` para essa primeira criação. Bancos existentes são preservados e não exigem essa permissão adicional. Falhas de senha ou de conexão interrompem a inicialização com uma mensagem de erro.
+
+Depois, o Flyway aplica as migrações em `src/main/resources/db/migration`, que criam as tabelas `produto`, `fatura`, `item_fatura`, `historico_precificacao`, `categoria`, `cidade` e `cliente`. O servidor PostgreSQL precisa estar instalado e em execução; a aplicação cria o banco e as tabelas dentro dele.
+
+A criação automática fica habilitada por padrão. `DB_CREATE_ENABLED=false` permite desativá-la, mantendo as migrações normais do Flyway. `DB_MAINTENANCE_DATABASE` permite escolher outro banco de manutenção existente. Essas opções também podem ser definidas no `.env.anemico`.
 
 ## Compilar e iniciar
 
@@ -61,9 +67,19 @@ mvn -s configuracao-maven.xml -pl precificacao-anemica spring-boot:run
 
 Endereço padrão: http://localhost:8080. SERVER_PORT permite mudar a porta. O servidor escuta em 127.0.0.1 por padrão; SERVER_ADDRESS permite configurar outro endereço.
 
+No Git Bash, já na raiz do projeto e com a senha configurada:
+
+~~~bash
+JAVA_HOME='C:/Java/jdk-17.0.12' mvn -s configuracao-maven.xml -pl precificacao-anemica spring-boot:run
+~~~
+
 ## Endpoints para o Postman
 
-Importe documentacao/postman/precificacao-anemica.postman_collection.json. A coleção usa a variável baseUrl e guarda o código retornado no cadastro para a consulta seguinte.
+Importe [precificacao-anemica.postman_collection.json](../documentacao/postman/precificacao-anemica.postman_collection.json). A coleção tem 59 requisições em cinco pastas. A variável `baseUrl` começa em `http://localhost:8080`. Execute as pastas e suas requisições na ordem pelo Collection Runner, começando pela primeira requisição de preparação.
+
+A preparação gera nomes, e-mails e CPFs de exemplo para cada execução e limpa as variáveis preenchidas pelo fluxo anterior. Os cadastros guardam `codigoCidade`, `codigoOutraCidade`, `codigoCategoria`, `codigoOutraCategoria`, `codigoCliente`, `codigoOutroCliente`, `codigoProduto`, `codigoFatura` e `codigoFaturaSemOpcionais` nas variáveis da coleção. Os filtros e as alterações seguintes usam esses códigos, sem pressupor que os registros começam em `1`. A variável `totalSimulado` guarda o total usado na comparação entre simulação e cadastro.
+
+As pastas cobrem preparação dos cadastros, produtos e histórico, faturas, atualização de clientes e renomeação de categorias. Incluem respostas esperadas de sucesso, entradas inválidas e conferências dos dados depois de operações rejeitadas. Para executar uma requisição isolada, execute antes as requisições das quais ela depende. O teste do cadastro de fatura com PIX compara seu total com o da simulação imediatamente anterior. A fatura sem campos opcionais usa outro código, permitindo consultá-la e identificá-la na listagem.
 
 ### Cadastrar produto
 
@@ -138,6 +154,16 @@ Para vincular ou trocar a categoria de um produto, envie `PATCH http://localhost
 
 A resposta `200 OK` contém o produto atualizado. Um código de categoria inválido retorna `400` e uma categoria inexistente retorna `404`.
 
+### Renomear categoria
+
+Envie `PATCH http://localhost:8080/api/categorias/1`, usando o código retornado no cadastro:
+
+```json
+{"nome": "Acessórios"}
+```
+
+A resposta `200 OK` contém o mesmo `codigo` e o novo `nome`. O nome é obrigatório, tem até 200 caracteres e segue a mesma validação do cadastro. Duplicidade, inclusive com capitalização diferente, retorna `400`; categoria inexistente retorna `404`. A alteração preserva os vínculos com produtos e os registros do histórico de precificação.
+
 ### Listar produtos
 
 Envie `GET http://localhost:8080/api/produtos` para listar os produtos em ordem de código. Use os filtros opcionais `nome` e `modalidadePrecificacao` na aba Params do Postman. Por exemplo, `nome=teclado` busca esse trecho no nome, ignorando maiúsculas e minúsculas. Também é possível filtrar por modalidade e pelo código da categoria, como em `?nome=teclado&modalidadePrecificacao=ACRESCIMO_SOBRE_CUSTO&categoria=1`. O produto precisa atender a todos os filtros informados.
@@ -185,6 +211,16 @@ A resposta `201 Created` contém `codigo`, `nome` e `uf`. A API aceita a sigla e
 
 Envie `GET http://localhost:8080/api/cidades` para listar as cidades em ordem de código.
 
+Os filtros `nome` e `uf` são opcionais e podem ser combinados:
+
+| Consulta | Resultado |
+|---|---|
+| `GET /api/cidades?nome=curi` | Cidades cujo nome contém o trecho, ignorando maiúsculas e minúsculas. |
+| `GET /api/cidades?uf=pr` | Cidades do Paraná; a UF é normalizada para `PR`. |
+| `GET /api/cidades?nome=curitiba&uf=PR` | Cidades que atendem aos dois filtros. |
+
+Espaços nas pontas são removidos e filtros em branco são tratados como ausentes. Uma UF brasileira inválida retorna `400`. Sem correspondências, a resposta é `200` com `[]`. A ordem continua sendo pelo código. Os caracteres `%` e `_` no nome são buscados como texto literal; configure o parâmetro na aba Params do Postman para que a URL seja codificada corretamente.
+
 ### Cadastrar e listar clientes
 
 Envie `POST http://localhost:8080/api/clientes` com `Content-Type: application/json` e o corpo abaixo. Use o código de uma cidade já cadastrada em `codigoCidade`.
@@ -210,6 +246,48 @@ Nome, CPF e e-mail são obrigatórios. Telefone e endereço são opcionais. O te
 A resposta `201 Created` contém o cliente cadastrado e o código gerado pelo banco. CPF e CEP podem ser enviados com ou sem pontuação e são retornados somente com os dígitos. O CPF é validado pelos dígitos verificadores. CPF duplicado, e-mail duplicado ou dados inválidos retornam `400`. A comparação de e-mails ignora maiúsculas e minúsculas. Cidade inexistente retorna `404`.
 
 Envie `GET http://localhost:8080/api/clientes` para listar os clientes em ordem de código.
+
+### Consultar cliente pelo código
+
+Envie `GET http://localhost:8080/api/clientes/1`. A resposta `200 OK` tem os mesmos campos do cadastro, com `endereco: null` quando ausente. Código inválido, como `0` ou `abc`, retorna `400`; um código positivo sem cliente retorna `404`.
+
+### Atualizar os contatos e o endereço do cliente
+
+Envie `PATCH http://localhost:8080/api/clientes/1` com um ou mais dos campos `email`, `telefone` e `endereco`:
+
+```json
+{
+  "email": "novo@example.com",
+  "telefone": "(41) 99999-0000",
+  "endereco": {
+    "cep": "80000-000",
+    "logradouro": "Rua de exemplo",
+    "numero": "12A",
+    "bairro": "Centro",
+    "codigoCidade": 2
+  }
+}
+```
+
+Use uma cidade cadastrada em `codigoCidade`. O objeto de endereço substitui o endereço inteiro; `complemento` é opcional. Os campos seguem as mesmas validações do cadastro.
+
+| Campo | Omitido | `null` | Valor informado |
+|---|---|---|---|
+| `email` | Mantém o atual. | Retorna `400`. | Atualiza se válido e único, ignorando capitalização para a unicidade. |
+| `telefone` | Mantém o atual. | Remove o telefone. | Valida e atualiza; texto em branco é tratado como ausência de telefone, como no cadastro. |
+| `endereco` | Mantém o atual. | Remove todos os dados do endereço, inclusive a cidade. | Exige um endereço completo e uma cidade existente. |
+
+Exemplos de remoção:
+
+```json
+{"telefone": null}
+```
+
+```json
+{"endereco": null}
+```
+
+A resposta `200 OK` traz o cliente atualizado. Corpo vazio, campos desconhecidos, tentativa de alterar nome ou CPF e valores inválidos retornam `400`. Cliente ou cidade inexistente retorna `404`. Todos os campos são validados antes da gravação: uma falha em qualquer um deles preserva o cadastro inteiro. O comando de atualização inclui somente as colunas correspondentes aos campos enviados; quando o endereço é enviado, todas as suas colunas são tratadas em conjunto. A leitura para atualização usa bloqueio de linha na mesma transação da gravação, preservando também os campos omitidos em alterações simultâneas. O código do cliente e seus vínculos com faturas são mantidos.
 
 ### Criar fatura
 
@@ -266,24 +344,49 @@ Requisições inválidas recebem 400 e não gravam o produto. Produto ausente re
 
 ## Testes
 
-Sem precisar iniciar um banco:
+O comando padrão executa somente os testes unitários, sem iniciar ou acessar PostgreSQL:
 
 ~~~powershell
 mvn -s configuracao-maven.xml -pl precificacao-anemica test
 ~~~
 
-Os testes verificam as duas modalidades, os três cálculos, arredondamento, limites, rejeição de entradas e respostas HTTP. A camada HTTP usa um repositório de teste em memória; essa implementação fica somente no código de testes.
+Os testes verificam as duas modalidades, os três cálculos, arredondamento, limites, rejeição de entradas e respostas HTTP. `FaturaServiceTest` confere precisão, quantidades e descontos válidos e inválidos. `ProdutoControllerTest` usa um repositório de teste em memória e `ClienteControllerTest` usa mocks para simular falhas de persistência. Essas implementações ficam somente no código de testes.
 
-Os testes PostgresProdutoRepositoryTest e AplicacaoPostgresTest usam PostgreSQL real quando estas variáveis estão presentes. O segundo inicia o servidor em uma porta aleatória e envia requisições HTTP:
+Para validar a suíte completa, incluindo as quatro classes de integração com PostgreSQL, use o perfil `integracao`. Na raiz do repositório, em Bash:
+
+~~~bash
+export BANCO_TESTE_URL='jdbc:postgresql://localhost:5432/precificacao_teste'
+export BANCO_CRIACAO_TESTE_URL='jdbc:postgresql://localhost:5432/postgres'
+export BANCO_TESTE_USUARIO='postgres'
+export BANCO_TESTE_SENHA='senha-do-banco-de-teste'
+mvn -s configuracao-maven.xml -pl precificacao-anemica -Pintegracao test
+~~~
+
+Em PowerShell:
 
 ~~~powershell
 $env:BANCO_TESTE_URL = "jdbc:postgresql://localhost:5432/precificacao_teste"
+$env:BANCO_CRIACAO_TESTE_URL = "jdbc:postgresql://localhost:5432/postgres"
 $env:BANCO_TESTE_USUARIO = "postgres"
 $env:BANCO_TESTE_SENHA = "senha-do-banco-de-teste"
-mvn -s configuracao-maven.xml -pl precificacao-anemica test
+mvn -s configuracao-maven.xml -pl precificacao-anemica -Pintegracao test
 ~~~
 
-Crie um banco separado para essa verificação: os testes executam a migração e inserem produtos. Sem BANCO_TESTE_URL, esses dois testes de integração são ignorados. A aplicação sempre utiliza PostgreSQL; não existe persistência em memória no código de produção.
+Crie antes o banco separado `precificacao_teste`: os testes aplicam as migrações V1 a V8 e inserem dados. `PostgresProdutoRepositoryTest`, `AplicacaoPostgresTest`, `CadastrosPostgresTest` e `CriacaoBancoPostgresTest` têm a tag `integracao`. O comando sem perfil exclui essas classes, mesmo com as variáveis definidas. Os testes unitários ficam em `target/surefire-reports`.
+
+O perfil exige as quatro variáveis antes de iniciar os testes. Senha vazia pode ser definida em ambientes que usem outro método de autenticação. Os relatórios da suíte completa ficam em uma pasta própria por execução, em `target/surefire-integracao/<data-hora>`, sem reutilizar resultados antigos. Ao terminar, a validação exige os relatórios das quatro classes de PostgreSQL e reprova suítes vazias, falhas, erros ou testes ignorados. As opções para pular testes, ignorar falhas ou selecionar somente parte da suíte são recusadas nesse perfil. Para executar um cenário individual, use a IDE com as variáveis do banco configuradas.
+
+O perfil vale para `precificacao-anemica`; a configuração do módulo rico está no README correspondente. A seleção por tags usa o [Surefire](https://maven.apache.org/surefire-archives/surefire-3.5.4/maven-surefire-plugin/test-mojo.html), e a conferência dos relatórios é chamada pelo [AntRun](https://maven.apache.org/plugins/maven-antrun-plugin/usage.html). O verificador fica somente em `src/test`, sem acrescentar casos à contagem de testes. A aplicação sempre utiliza PostgreSQL; não existe persistência em memória no código de produção.
+
+`CadastrosPostgresTest` verifica consulta de clientes com e sem endereço; atualização parcial e remoção de campos opcionais; rejeição de entradas inválidas sem gravações parciais; conflitos de unicidade; filtros de cidades, incluindo `%` e `_` literais; renomeação de categorias com preservação dos vínculos e do histórico; alterações concorrentes de contatos; faturas com as cinco formas de pagamento e comportamento dos descontos com preços atuais. Também confere a precisão entre simulação, cadastro e consulta, a rejeição de faturas inválidas e o desfazimento da alteração de preço quando a gravação do histórico falha.
+
+O teste de atualização exclusiva de e-mail instala um gatilho apenas no banco de teste para recusar comandos que mencionem colunas omitidas, mesmo que tentem regravar os mesmos valores. O gatilho e sua função são removidos ao terminar. `ClienteControllerTest` verifica que uma falha de acesso ao banco durante a atualização continua retornando `503`, com mensagem genérica.
+
+O registro das etapas e dos resultados de execução está em [Validacao-Plano-Anemico.md](../documentacao/Validacao-Plano-Anemico.md).
+
+O teste `CriacaoBancoPostgresTest` usa `BANCO_CRIACAO_TESTE_URL`, que deve apontar para o banco de manutenção `postgres` de um servidor exclusivo de testes. Ele reutiliza `BANCO_TESTE_USUARIO` e `BANCO_TESTE_SENHA`. O usuário deve conseguir criar bancos e papéis. O cenário de concorrência também exige um administrador autorizado a bloquear `pg_catalog.pg_database`; esse bloqueio temporário deve ser usado apenas no servidor exclusivo de testes. O teste cria bancos temporários com nomes aleatórios e os remove ao terminar; verifica criação antes do Flyway, preservação dos dados ao reiniciar, desativação da criação, identificadores com aspas, concorrência e falhas de permissão ou autenticação. A criação desativada exige especificamente o erro PostgreSQL de banco inexistente.
+
+Os cenários de concorrência confirmam no PostgreSQL que as duas operações estão aguardando o mesmo bloqueio antes de liberá-las. O teste de contatos mantém bloqueado somente o cliente criado pelo próprio cenário. O teste de criação segura as duas instruções `CREATE DATABASE` para o mesmo nome. A observação tem limite de cinco segundos; os bloqueios são liberados e as tarefas são aguardadas durante a limpeza, inclusive quando alguma verificação falha.
 
 Na validação pelo ambiente isolado do Codex no Windows, foi necessário usar um diretório temporário curto para os sockets internos do Java. Para reproduzir nesse ambiente, acrescente ao comando Maven:
 

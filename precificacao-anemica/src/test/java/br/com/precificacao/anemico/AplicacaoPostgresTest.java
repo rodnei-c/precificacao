@@ -8,11 +8,13 @@ import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.Map;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import org.springframework.boot.SpringApplication;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.core.env.MapPropertySource;
+import org.springframework.jdbc.core.JdbcTemplate;
 import tools.jackson.databind.json.JsonMapper;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -20,6 +22,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 /**
  * Inicia o servidor completo em porta aleatória, usando somente o banco de teste informado.
  */
+@Tag("integracao")
 @EnabledIfEnvironmentVariable(named = "BANCO_TESTE_URL", matches = "jdbc:postgresql:.*")
 class AplicacaoPostgresTest {
 
@@ -50,8 +53,9 @@ class AplicacaoPostgresTest {
         }
         """);
       assertEquals(201, cadastro.statusCode(), cadastro.body());
+      var produtoCadastrado = json.readTree(cadastro.body());
       assertEquals(0, new BigDecimal("100.00").compareTo(
-        json.readTree(cadastro.body()).get("custo").decimalValue()
+        produtoCadastrado.get("custo").decimalValue()
       ));
 
       URI consulta = URI.create(endereco + cadastro.headers().firstValue("Location").orElseThrow());
@@ -61,6 +65,12 @@ class AplicacaoPostgresTest {
       );
       assertEquals(200, produto.statusCode(), produto.body());
       assertEquals("Produto integrado", json.readTree(produto.body()).get("nome").stringValue());
+      assertEquals(produtoCadastrado, json.readTree(produto.body()),
+        "A consulta deve devolver os mesmos dados do cadastro, incluindo o custo calculado.");
+      assertEquals(new BigDecimal("100.00"), contexto.getBean(JdbcTemplate.class).queryForObject(
+        "SELECT custo FROM produto WHERE codigo = ?", BigDecimal.class,
+        produtoCadastrado.get("codigo").longValue()
+      ), "O custo calculado deve estar gravado no PostgreSQL.");
 
       URI precificacao = URI.create(consulta + "/precificacao");
       HttpResponse<String> alteracao = alterar(cliente, precificacao, """

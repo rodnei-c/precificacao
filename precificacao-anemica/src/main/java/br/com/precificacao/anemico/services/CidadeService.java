@@ -8,5 +8,6 @@ public interface CidadeService {
 
   Cidade cadastrar(CadastroCidadeRequisicao requisicao);
 
-  List<Cidade> listar();
+  /** @return cidades em ordem de código, combinando os filtros opcionais por nome e UF */
+  List<Cidade> listar(String nome, String uf);
 }

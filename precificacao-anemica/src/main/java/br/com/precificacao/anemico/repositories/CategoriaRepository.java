@@ -10,5 +10,8 @@ public interface CategoriaRepository {
 
   List<Categoria> listar();
 
+  /** @return categoria após atualizar somente o nome, ou vazio quando ausente */
+  Optional<Categoria> renomear(Long codigo, String nome);
+
   boolean existePorCodigo(Long codigo);
 }

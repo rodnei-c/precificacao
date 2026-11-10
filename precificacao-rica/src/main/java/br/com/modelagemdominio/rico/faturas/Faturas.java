@@ -5,7 +5,7 @@ import java.util.List;
 
 /**
  * Define as operações da coleção de faturas, seguindo o contrato de Produtos.
- * A implementação PostgreSQL ainda será criada.
+ * O cadastro deve gravar cabeçalho e itens como uma única operação.
  */
 public interface Faturas {
 
@@ -26,11 +26,44 @@ public interface Faturas {
    * @return fatura cadastrada
    * @throws FalhaFatura quando os dados forem inválidos ou a gravação falhar
    */
-  Fatura cadastrar(List<ItemFatura> itens, Desconto desconto) throws FalhaFatura;
+  default Fatura cadastrar(List<ItemFatura> itens, Desconto desconto) throws FalhaFatura {
+    return this.cadastrar(new CalculoFatura(itens, desconto), new VinculosFatura());
+  }
 
   /**
-   * @return faturas cadastradas
+   * Deve preparar o cálculo e validar as referências antes de gravar cabeçalho e itens juntos.
+   *
+   * @param calculo composição validada de itens e desconto
+   * @param vinculos cliente e modalidade de pagamento opcionais
+   * @return fatura cadastrada com código e data gerados
+   * @throws FalhaFatura quando as referências estiverem ausentes ou a gravação falhar
+   * @throws FaturaInvalida quando o desconto inicial ultrapassar o subtotal
+   */
+  Fatura cadastrar(CalculoFatura calculo, VinculosFatura vinculos) throws FalhaFatura;
+
+  /**
+   * Prepara os mesmos valores do cadastro, sem gerar identidade ou persistir dados.
+   *
+   * @param calculo composição validada de itens e desconto
+   * @param vinculos cliente e pagamento opcionais, sujeitos às mesmas validações
+   * @return valores calculados com os preços observados na operação
+   * @throws FalhaFatura quando uma referência estiver ausente ou a leitura falhar
+   * @throws FaturaInvalida quando o desconto inicial ultrapassar o subtotal
+   */
+  ValoresFatura simular(CalculoFatura calculo, VinculosFatura vinculos) throws FalhaFatura;
+
+  /**
+   * @return resumos de todas as faturas, por data e código decrescentes
    * @throws FalhaFatura quando a consulta falhar
    */
-  List<Fatura> listar() throws FalhaFatura;
+  default List<ResumoFatura> listar() throws FalhaFatura {
+    return this.listar(new FiltrosFaturas());
+  }
+
+  /**
+   * @param filtros período e cliente, combinados quando informados
+   * @return resumos ordenados por data e código decrescentes
+   * @throws FalhaFatura quando a leitura falhar
+   */
+  List<ResumoFatura> listar(FiltrosFaturas filtros) throws FalhaFatura;
 }

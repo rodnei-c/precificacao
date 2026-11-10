@@ -1,2 +1,2 @@
-/** Entrada HTTP para as futuras operações de cadastro e consulta de faturas. */
+/** Adaptação HTTP do cadastro, consulta, simulação e listagem de faturas. */
 package br.com.modelagemdominio.rico.faturas.http;

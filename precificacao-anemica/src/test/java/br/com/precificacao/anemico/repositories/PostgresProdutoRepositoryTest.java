@@ -5,6 +5,7 @@ import br.com.precificacao.anemico.models.Produto;
 import br.com.precificacao.anemico.repositories.impl.JdbcProdutoRepository;
 import java.math.BigDecimal;
 import org.flywaydb.core.Flyway;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -16,6 +17,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /**
  * Verifica a migração e a persistência em um PostgreSQL de teste informado explicitamente.
  */
+@Tag("integracao")
 @EnabledIfEnvironmentVariable(named = "BANCO_TESTE_URL", matches = "jdbc:postgresql:.*")
 class PostgresProdutoRepositoryTest {
 

@@ -1,7 +1,9 @@
 package br.com.precificacao.anemico.services.impl;
 
+import br.com.precificacao.anemico.dtos.AlteracaoClienteRequisicao;
 import br.com.precificacao.anemico.dtos.CadastroClienteRequisicao;
 import br.com.precificacao.anemico.dtos.CadastroClienteRequisicao.EnderecoRequisicao;
+import br.com.precificacao.anemico.enums.CampoCliente;
 import br.com.precificacao.anemico.exceptions.RegistroNaoEncontradoException;
 import br.com.precificacao.anemico.exceptions.ValidacaoException;
 import br.com.precificacao.anemico.models.Cliente;
@@ -10,9 +12,13 @@ import br.com.precificacao.anemico.repositories.CidadeRepository;
 import br.com.precificacao.anemico.repositories.ClienteRepository;
 import br.com.precificacao.anemico.services.ClienteService;
 import java.math.BigDecimal;
+import java.util.EnumSet;
 import java.util.List;
+import java.util.Set;
 import java.util.regex.Pattern;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class ClienteServiceImpl implements ClienteService {
@@ -37,14 +43,8 @@ public class ClienteServiceImpl implements ClienteService {
   public Cliente cadastrar(CadastroClienteRequisicao requisicao) {
     String nome = textoObrigatorio("nome", requisicao.nome(), 200);
     String cpf = validarCpf(requisicao.cpf());
-    String email = textoObrigatorio("email", requisicao.email(), 254);
-    if (!FORMATO_EMAIL.matcher(email).matches()) {
-      throw new ValidacaoException("Informe um e-mail válido.");
-    }
-    String telefone = textoOpcional("telefone", requisicao.telefone(), 30);
-    if (telefone != null && !FORMATO_TELEFONE.matcher(telefone).matches()) {
-      throw new ValidacaoException("Informe um telefone fixo ou celular no formato brasileiro, com DDD.");
-    }
+    String email = validarEmail(requisicao.email());
+    String telefone = validarTelefone(requisicao.telefone());
     Endereco endereco = prepararEndereco(requisicao.endereco());
     Cliente cliente = new Cliente(null, nome, cpf, email, telefone, endereco);
     return clienteRepository.inserir(cliente)
@@ -54,6 +54,87 @@ public class ClienteServiceImpl implements ClienteService {
   @Override
   public List<Cliente> listar() {
     return clienteRepository.listar();
+  }
+
+  /** Valida o código e diferencia um cliente ausente de uma entrada inválida. */
+  @Override
+  public Cliente buscarPorCodigo(Long codigo) {
+    validarCodigo(codigo);
+    return clienteRepository.buscarPorCodigo(codigo)
+      .orElseThrow(() -> new RegistroNaoEncontradoException("Cliente não encontrado."));
+  }
+
+  /** Valida a alteração e mantém leitura e gravação na mesma transação. */
+  @Override
+  @Transactional
+  public Cliente alterar(Long codigo, AlteracaoClienteRequisicao requisicao) {
+    validarCodigo(codigo);
+    Set<CampoCliente> camposInformados = validarAlteracao(requisicao);
+    Cliente atual = clienteRepository.buscarPorCodigoParaAtualizacao(codigo)
+      .orElseThrow(() -> new RegistroNaoEncontradoException("Cliente não encontrado."));
+    String email = requisicao.emailInformado() ? validarEmail(requisicao.email()) : atual.email();
+    String telefone = requisicao.telefoneInformado() ? validarTelefone(requisicao.telefone()) : atual.telefone();
+    Endereco endereco = requisicao.enderecoInformado()
+      ? prepararEndereco(requisicao.endereco()) : atual.endereco();
+    return gravarAtualizacao(new Cliente(
+      atual.codigo(), atual.nome(), atual.cpf(), email, telefone, endereco
+    ), camposInformados);
+  }
+
+  private Set<CampoCliente> validarAlteracao(AlteracaoClienteRequisicao requisicao) {
+    if (requisicao == null) {
+      throw new ValidacaoException("Informe os dados para atualizar o cliente.");
+    }
+    Set<CampoCliente> camposInformados = camposInformados(requisicao);
+    if (camposInformados.isEmpty()) {
+      throw new ValidacaoException("Informe ao menos um campo para atualizar o cliente.");
+    }
+    return camposInformados;
+  }
+
+  private Set<CampoCliente> camposInformados(AlteracaoClienteRequisicao requisicao) {
+    Set<CampoCliente> campos = EnumSet.noneOf(CampoCliente.class);
+    if (requisicao.emailInformado()) {
+      campos.add(CampoCliente.EMAIL);
+    }
+    if (requisicao.telefoneInformado()) {
+      campos.add(CampoCliente.TELEFONE);
+    }
+    if (requisicao.enderecoInformado()) {
+      campos.add(CampoCliente.ENDERECO);
+    }
+    return campos;
+  }
+
+  private Cliente gravarAtualizacao(Cliente cliente, Set<CampoCliente> camposInformados) {
+    try {
+      return clienteRepository.atualizar(cliente, camposInformados)
+        .orElseThrow(() -> new RegistroNaoEncontradoException("Cliente não encontrado."));
+    } catch (DuplicateKeyException excecao) {
+      throw new ValidacaoException("Já existe um cliente com o e-mail informado.");
+    }
+  }
+
+  private String validarEmail(String valor) {
+    String email = textoObrigatorio("email", valor, 254);
+    if (!FORMATO_EMAIL.matcher(email).matches()) {
+      throw new ValidacaoException("Informe um e-mail válido.");
+    }
+    return email;
+  }
+
+  private String validarTelefone(String valor) {
+    String telefone = textoOpcional("telefone", valor, 30);
+    if (telefone != null && !FORMATO_TELEFONE.matcher(telefone).matches()) {
+      throw new ValidacaoException("Informe um telefone fixo ou celular no formato brasileiro, com DDD.");
+    }
+    return telefone;
+  }
+
+  private void validarCodigo(Long codigo) {
+    if (codigo == null || codigo <= 0) {
+      throw new ValidacaoException("O código do cliente deve ser maior que zero.");
+    }
   }
 
   private String validarCpf(String valor) {

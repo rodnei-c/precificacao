@@ -35,8 +35,13 @@ public class CidadeServiceImpl implements CidadeService {
   }
 
   @Override
-  public List<Cidade> listar() {
-    return cidadeRepository.listar();
+  public List<Cidade> listar(String nome, String uf) {
+    String nomeFiltrado = nome == null || nome.isBlank() ? null : nome.strip();
+    if (nomeFiltrado != null && (nomeFiltrado.length() > 200 || nomeFiltrado.indexOf('\0') >= 0)) {
+      throw new ValidacaoException("Informe um filtro de nome válido com até 200 caracteres.");
+    }
+    UnidadeFederativa ufFiltrada = uf == null || uf.isBlank() ? null : validarUf(uf);
+    return cidadeRepository.listar(nomeFiltrado, ufFiltrada);
   }
 
   private UnidadeFederativa validarUf(String uf) {
