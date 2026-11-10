@@ -1,5 +1,6 @@
 package br.com.modelagemdominio.rico.produtos.pg;
 
+import br.com.modelagemdominio.rico.categorias.CodigoCategoria;
 import br.com.modelagemdominio.rico.produtos.ModalidadePrecificacao;
 import br.com.modelagemdominio.rico.produtos.Precificacao;
 import br.com.modelagemdominio.rico.produtos.FalhaProduto;
@@ -10,6 +11,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.Optional;
 import javax.sql.DataSource;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -139,6 +141,11 @@ class PgProdutosTest {
             @Override
             public Precificacao precificacao() throws FalhaProduto {
                 return new PgProduto(PgProdutosTest.this.banco, identificacao).precificacao();
+            }
+
+            @Override
+            public Optional<CodigoCategoria> codigoCategoria() throws FalhaProduto {
+                return new PgProduto(PgProdutosTest.this.banco, identificacao).codigoCategoria();
             }
         });
 

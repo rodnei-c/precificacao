@@ -5,6 +5,7 @@ public final class FalhaProduto extends Exception {
     public enum Motivo {
         CODIGO_INVALIDO,
         PRODUTO_AUSENTE,
+        CATEGORIA_AUSENTE,
         PERSISTENCIA_INDISPONIVEL
     }
 

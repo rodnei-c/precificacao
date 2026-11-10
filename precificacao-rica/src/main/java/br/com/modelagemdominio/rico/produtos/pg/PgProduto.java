@@ -1,5 +1,6 @@
 package br.com.modelagemdominio.rico.produtos.pg;
 
+import br.com.modelagemdominio.rico.categorias.CodigoCategoria;
 import br.com.modelagemdominio.rico.produtos.Precificacao;
 import br.com.modelagemdominio.rico.produtos.FalhaProduto;
 import br.com.modelagemdominio.rico.produtos.Produto;
@@ -7,6 +8,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.Optional;
 import javax.sql.DataSource;
 
 public final class PgProduto implements Produto {
@@ -55,6 +57,24 @@ public final class PgProduto implements Produto {
                     throw new FalhaProduto(FalhaProduto.Motivo.PRODUTO_AUSENTE);
                 }
                 return new ResultadoSqlDePrecificacao(resultado).precificacao();
+            }
+        } catch (SQLException falha) {
+            throw new FalhaProduto(FalhaProduto.Motivo.PERSISTENCIA_INDISPONIVEL, falha);
+        }
+    }
+
+    @Override
+    public Optional<CodigoCategoria> codigoCategoria() throws FalhaProduto {
+        try (Connection conexao = this.banco.getConnection();
+             PreparedStatement consulta = conexao.prepareStatement(
+                 "SELECT categoria_codigo FROM public.produto WHERE codigo = ?"
+             )) {
+            consulta.setLong(1, this.codigo);
+            try (ResultSet resultado = consulta.executeQuery()) {
+                if (!resultado.next()) {
+                    throw new FalhaProduto(FalhaProduto.Motivo.PRODUTO_AUSENTE);
+                }
+                return ResultadoSqlDeProduto.codigoCategoria(resultado);
             }
         } catch (SQLException falha) {
             throw new FalhaProduto(FalhaProduto.Motivo.PERSISTENCIA_INDISPONIVEL, falha);

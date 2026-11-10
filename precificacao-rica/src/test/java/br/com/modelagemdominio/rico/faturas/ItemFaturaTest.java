@@ -1,6 +1,8 @@
 package br.com.modelagemdominio.rico.faturas;
 
+import br.com.modelagemdominio.rico.categorias.CodigoCategoria;
 import br.com.modelagemdominio.rico.produtos.FalhaProduto;
+import br.com.modelagemdominio.rico.produtos.FiltrosProdutos;
 import br.com.modelagemdominio.rico.produtos.NomeProduto;
 import br.com.modelagemdominio.rico.produtos.Precificacao;
 import br.com.modelagemdominio.rico.produtos.Produto;
@@ -10,10 +12,15 @@ import br.com.modelagemdominio.rico.produtos.precificacao.AcrescimoSobreCusto;
 import br.com.modelagemdominio.rico.produtos.precificacao.PrecificacaoInvalida;
 import br.com.modelagemdominio.rico.produtos.precificacao.PrecificacaoParaCadastro;
 import br.com.modelagemdominio.rico.produtos.precificacao.Precificacoes;
+import br.com.modelagemdominio.rico.produtos.precificacao.ValoresParaPrecificar;
 import br.com.modelagemdominio.rico.testes.DataSourceSemConexao;
 import java.math.BigDecimal;
+import java.util.Comparator;
 import java.util.HashMap;
+import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -54,9 +61,9 @@ class ItemFaturaTest {
     );
 
     assertEquals(new BigDecimal("180.000"), item.subtotal());
-    produtos.alterarPrecificacao(produto.codigo(), precificacao("80.00"));
+    produtos.alterarPrecificacao(produto.codigo(), valoresParaPreco("80.00"));
     assertEquals(new BigDecimal("120.000"), item.subtotal());
-    produtos.alterarPrecificacao(produto.codigo(), precificacao("140.00"));
+    produtos.alterarPrecificacao(produto.codigo(), valoresParaPreco("140.00"));
     assertEquals(new BigDecimal("210.000"), item.subtotal());
   }
 
@@ -90,9 +97,13 @@ class ItemFaturaTest {
       .comCustoEVenda(BigDecimal.ONE, new BigDecimal(venda));
   }
 
+  private ValoresParaPrecificar valoresParaPreco(String venda) {
+    return new ValoresParaPrecificar(BigDecimal.ONE, new BigDecimal(venda), null);
+  }
+
   private static final class ProdutosDeTeste implements Produtos {
 
-    private final Map<Long, Produto> registros = new HashMap<>();
+    private final Map<Long, ProdutoDeTeste> registros = new HashMap<>();
 
     @Override
     public Produto produto(long codigo) throws FalhaProduto {
@@ -104,21 +115,49 @@ class ItemFaturaTest {
     }
 
     @Override
-    public Produto cadastrar(NomeProduto nome, PrecificacaoParaCadastro precificacao) {
+    public List<Produto> listar(FiltrosProdutos filtros) {
+      return this.registros.values().stream()
+        .filter(produto -> filtros.nome().map(nome -> produto.nome().toLowerCase(Locale.ROOT)
+          .contains(nome.toLowerCase(Locale.ROOT))).orElse(true))
+        .filter(produto -> filtros.modalidade().map(produto.precificacao().modalidade()::equals).orElse(true))
+        .filter(produto -> filtros.categoria().map(categoria -> produto.codigoCategoria().equals(Optional.of(categoria)))
+          .orElse(true))
+        .sorted(Comparator.comparingLong(Produto::codigo))
+        .map(Produto.class::cast)
+        .toList();
+    }
+
+    @Override
+    public Produto cadastrar(NomeProduto nome, PrecificacaoParaCadastro precificacao,
+                             Optional<CodigoCategoria> codigoCategoria) {
       long codigo = this.registros.size() + 1L;
-      Produto produto = new ProdutoDeTeste(codigo, nome.valor(), precificacao.precificacao());
+      ProdutoDeTeste produto = new ProdutoDeTeste(codigo, nome.valor(), precificacao.precificacao(), codigoCategoria);
       this.registros.put(codigo, produto);
       return produto;
     }
 
-    void alterarPrecificacao(long codigo, PrecificacaoParaCadastro precificacao) throws FalhaProduto {
+    @Override
+    public Produto vincularCategoria(long codigo, CodigoCategoria codigoCategoria) throws FalhaProduto {
       Produto anterior = produto(codigo);
-      this.registros.put(codigo, new ProdutoDeTeste(
-        codigo, anterior.nome(), precificacao.precificacao()
-      ));
+      ProdutoDeTeste vinculado = new ProdutoDeTeste(
+        codigo, anterior.nome(), anterior.precificacao(), Optional.of(codigoCategoria)
+      );
+      this.registros.put(codigo, vinculado);
+      return vinculado;
+    }
+
+    @Override
+    public Produto alterarPrecificacao(long codigo, ValoresParaPrecificar valores)
+        throws FalhaProduto, PrecificacaoInvalida {
+      Produto anterior = produto(codigo);
+      Precificacao precificacao = valores.precificacao(anterior.precificacao().modalidade()).precificacao();
+      var atualizado = new ProdutoDeTeste(codigo, anterior.nome(), precificacao, anterior.codigoCategoria());
+      this.registros.put(codigo, atualizado);
+      return atualizado;
     }
   }
 
-  private record ProdutoDeTeste(long codigo, String nome, Precificacao precificacao) implements Produto {
+  private record ProdutoDeTeste(long codigo, String nome, Precificacao precificacao,
+                                Optional<CodigoCategoria> codigoCategoria) implements Produto {
   }
 }
