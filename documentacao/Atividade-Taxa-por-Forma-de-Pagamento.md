@@ -13,9 +13,9 @@ Use a branch `anemico` como ponto de partida. A partir dela, crie uma branch pr√
 Dentro da pasta do projeto, execute:
 
 ```bash
-git switch anemico
-git pull --ff-only
-git switch -c atividade/taxa-pagamento-seu-nome
+git checkout anemico
+git pull
+git checkout -b atividade/taxa-pagamento-seu-nome
 ```
 
 Substitua `seu-nome` pelo seu nome para identificar a branch. Fa√ßa os commits da atividade na branch criada.
