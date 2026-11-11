@@ -161,15 +161,23 @@ Os filtros combinam com `AND`. Parâmetros omitidos ou vazios são ignorados. Da
 
 ## Rodar a API
 
-Com o servidor PostgreSQL ativo, execute na raiz do repositório. A API prepara o banco antes de abrir a porta HTTP:
+Com o servidor PostgreSQL ativo, configure um arquivo local `.env.rico` na raiz do repositório:
+
+~~~properties
+RICO_DB_USER=postgres
+DB_PASSWORD=sua-senha-local
+~~~
+
+O arquivo usa o formato Java Properties em UTF-8: `CHAVE=valor`, sem `export` ou aspas, com comentários iniciados por `#`. Ele é ignorado pelo Git e não é incluído no JAR. A aplicação procura o arquivo no diretório de execução; ao executar dentro de `precificacao-rica`, usa o arquivo da raiz como alternativa. Se houver um arquivo no próprio módulo, ele tem preferência sobre o da raiz.
+
+No IntelliJ, execute `AplicacaoRica` com o diretório de trabalho na raiz do repositório ou no módulo `precificacao-rica`. Para rodar pelo terminal, execute na raiz. A API prepara o banco antes de abrir a porta HTTP:
 
 ~~~powershell
-$env:DB_PASSWORD = "senha-do-banco"
 mvn -s configuracao-maven.xml -pl precificacao-rica package
 java -jar precificacao-rica/target/precificacao-rica-1.0.0-SNAPSHOT.jar
 ~~~
 
-No Git Bash, use `export DB_PASSWORD='senha-do-banco'` antes dos mesmos comandos Maven e Java.
+As variáveis de ambiente têm prioridade sobre os valores do arquivo, inclusive quando estiverem definidas como vazias. Para configurar pelo ambiente, use `$env:DB_PASSWORD = "senha-do-banco"` no PowerShell ou `export DB_PASSWORD='senha-do-banco'` no Git Bash. Sem o arquivo, a aplicação continua aceitando somente as variáveis de ambiente. As demais opções da tabela de configuração também podem ser informadas no `.env.rico`.
 
 No Postman, faça um GET em `http://127.0.0.1:8081/api/produtos/1`, substituindo `1` pelo código de um produto salvo em `precificacao_rica`. Um código válido sem registro retorna `404`. A porta pode ser alterada com `RICO_SERVER_PORT`.
 
@@ -365,7 +373,7 @@ Na inicialização, a aplicação verifica o banco configurado, cria somente qua
 | --- | --- | --- |
 | `RICO_DB_URL` | `jdbc:postgresql://localhost:5432/precificacao_rica` | Banco da implementação rica, com nome explícito na URL. |
 | `RICO_DB_USER` | `postgres` | Usuário das conexões, criação e migrações. |
-| `DB_PASSWORD` | Obrigatória | Senha do usuário configurado; não é gravada no código. |
+| `DB_PASSWORD` | Obrigatória via ambiente ou `.env.rico` | Senha do usuário configurado; não é gravada no código. |
 | `RICO_DB_CRIAR_SE_AUSENTE` | `true` | Aceita `true` ou `false`; controla somente a criação do banco ausente. |
 | `RICO_DB_MANUTENCAO` | `postgres` | Banco existente no mesmo servidor usado para criar o banco ausente. |
 | `RICO_SERVER_PORT` | `8081` | Porta HTTP; o endereço de escuta continua sendo `127.0.0.1`. |

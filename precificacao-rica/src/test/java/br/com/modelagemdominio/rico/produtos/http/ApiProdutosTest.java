@@ -285,6 +285,7 @@ class ApiProdutosTest {
     private Process iniciarApi(Path log) throws Exception {
         ProcessBuilder processo = new ProcessBuilder(
             Path.of(System.getProperty("java.home"), "bin", "java").toString(),
+            "-Dfile.encoding=UTF-8", "-Dsun.stdout.encoding=UTF-8", "-Dsun.stderr.encoding=UTF-8",
             "-cp", System.getProperty("surefire.test.class.path", System.getProperty("java.class.path")),
             AplicacaoRica.class.getName()
         );

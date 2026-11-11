@@ -93,6 +93,7 @@
       <arg value="br.com.modelagemdominio.rico.EntidadesMaterializadasTest" />
       <arg value="br.com.modelagemdominio.rico.HistoricoPrecificacaoTest" />
       <arg value="br.com.modelagemdominio.rico.infraestrutura.banco.EnderecoPostgresTest" />
+      <arg value="br.com.modelagemdominio.rico.infraestrutura.configuracao.AmbienteRicoTest" />
       <arg value="br.com.modelagemdominio.rico.infraestrutura.banco.CriacaoBancoPostgresTest" />
       <arg value="br.com.modelagemdominio.rico.ListaCategoriasTest" />
       <arg value="br.com.modelagemdominio.rico.ListaCidadesTest" />

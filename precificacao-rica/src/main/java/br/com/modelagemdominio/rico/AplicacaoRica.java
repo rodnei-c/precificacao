@@ -1,6 +1,7 @@
 package br.com.modelagemdominio.rico;
 
 import br.com.modelagemdominio.rico.infraestrutura.banco.BancoPostgres;
+import br.com.modelagemdominio.rico.infraestrutura.configuracao.AmbienteRico;
 import com.zaxxer.hikari.HikariDataSource;
 import java.io.IOException;
 import java.net.InetAddress;
@@ -20,7 +21,7 @@ public final class AplicacaoRica {
   }
 
   public static void main(String[] args) throws IOException {
-    var ambiente = System.getenv();
+    var ambiente = new AmbienteRico().valores();
     int porta = Integer.parseInt(ambiente.getOrDefault("RICO_SERVER_PORT", "8081"));
     try (HikariDataSource banco = new BancoPostgres(ambiente).preparar();
       ServerSocket servidor = new ServerSocket(porta, 50, InetAddress.getByName("127.0.0.1"))) {

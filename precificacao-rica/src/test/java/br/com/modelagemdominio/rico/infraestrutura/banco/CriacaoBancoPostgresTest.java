@@ -228,7 +228,8 @@ class CriacaoBancoPostgresTest {
   private ApiTemporaria iniciar(String nome) throws Exception {
     Path log = this.temporario.resolve(UUID.randomUUID() + ".log");
     var processo = new ProcessBuilder(Path.of(System.getProperty("java.home"), "bin", "java").toString(),
-      "-Dfile.encoding=UTF-8", "-cp", System.getProperty("surefire.test.class.path", System.getProperty("java.class.path")),
+      "-Dfile.encoding=UTF-8", "-Dsun.stdout.encoding=UTF-8", "-Dsun.stderr.encoding=UTF-8",
+      "-cp", System.getProperty("surefire.test.class.path", System.getProperty("java.class.path")),
       AplicacaoRica.class.getName());
     var ambiente = processo.environment();
     ambiente.put("RICO_DB_URL", url(nome));
