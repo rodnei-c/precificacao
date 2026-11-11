@@ -36,7 +36,11 @@ final class ResultadoSqlDeCidade {
   }
 
   /** @return cidade composta com os valores da leitura */
-  Cidade cidade() {
-    return new CidadeConstante(this.codigo, this.nome, this.uf);
+  Cidade cidade() throws SQLException {
+    try {
+      return new CidadeConstante(this.codigo, this.nome, this.uf);
+    } catch (IllegalArgumentException falha) {
+      throw new SQLException("Cidade com identidade inválida no banco.", falha);
+    }
   }
 }

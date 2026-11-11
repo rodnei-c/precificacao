@@ -12,6 +12,7 @@ import org.junit.jupiter.params.provider.CsvSource;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class PrecificacoesTest {
@@ -72,9 +73,7 @@ class PrecificacoesTest {
   @CsvSource({
     "ACRESCIMO_SOBRE_CUSTO, 0, 20",
     "ACRESCIMO_SOBRE_CUSTO, 100, -1",
-    "ACRESCIMO_SOBRE_CUSTO, 1.001, 20",
     "ACRESCIMO_SOBRE_CUSTO, 100, 20.00001",
-    "ACRESCIMO_SOBRE_CUSTO, 100, 0.0040",
     "ACRESCIMO_SOBRE_CUSTO, 99999999999999999.99, 1",
     "MARGEM_SOBRE_VENDA, 100, 100",
     "MARGEM_SOBRE_VENDA, 100, 0.0040"
@@ -95,13 +94,12 @@ class PrecificacoesTest {
       () -> precificacoes.comVendaEPercentual(venda, percentual));
   }
 
-  @ParameterizedTest
-  @CsvSource({"100, 99", "0.01, 100000000"})
-  void rejeitaVendaInferiorAoCustoOuMargemArredondadaParaCem(BigDecimal custo, BigDecimal venda) {
+  @Test
+  void rejeitaMargemArredondadaParaCem() {
     Precificacoes precificacoes = new Precificacoes(new MargemSobreVenda());
 
     assertThrows(PrecificacaoInvalida.class,
-      () -> precificacoes.comCustoEVenda(custo, venda));
+      () -> precificacoes.comCustoEVenda(new BigDecimal("0.01"), new BigDecimal("100000000")));
   }
 
   @ParameterizedTest
@@ -139,6 +137,30 @@ class PrecificacoesTest {
     assertThrows(PrecificacaoInvalida.class, () -> calculo.comCustoEPercentual(null, BigDecimal.ZERO));
     assertThrows(PrecificacaoInvalida.class, () -> calculo.comVendaEPercentual(BigDecimal.ONE, null));
     assertThrows(PrecificacaoInvalida.class, () -> calculo.comCustoEVenda(BigDecimal.ONE, null));
+  }
+
+  @Test
+  void verificaOrdemAntesDeCalcularPercentual() {
+    var calculo = new Precificacoes(new AcrescimoSobreCusto());
+    var falha = assertThrows(PrecificacaoInvalida.class,
+      () -> calculo.comCustoEVenda(new BigDecimal("100"), new BigDecimal("99.99")));
+
+    assertEquals("O preço de venda não pode ser inferior ao custo.", falha.getMessage());
+    assertNull(falha.getCause());
+  }
+
+  @Test
+  void aplicaEspecificacaoAosPrecosAposArredondamento() throws PrecificacaoInvalida {
+    var calculo = new Precificacoes(new AcrescimoSobreCusto());
+    var custo = new BigDecimal("100");
+    var falha = assertThrows(PrecificacaoInvalida.class,
+      () -> calculo.comCustoEPercentual(custo, new BigDecimal("0.0050")));
+
+    assertEquals("O percentual positivo deve produzir preço de venda maior que o custo após o arredondamento.",
+      falha.getMessage());
+    assertEquals(falha.getMessage(), assertInstanceOf(IllegalArgumentException.class, falha.getCause()).getMessage());
+    assertEquals(new Dinheiro("100.01"),
+      calculo.comCustoEPercentual(custo, new BigDecimal("0.0051")).precificacao().precoVenda());
   }
 
   private Precificacoes calculo(ModalidadePrecificacao modalidade) {

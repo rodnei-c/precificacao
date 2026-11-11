@@ -3,9 +3,9 @@ package br.com.modelagemdominio.rico.produtos.pg;
 import br.com.modelagemdominio.rico.produtos.FalhaProduto;
 import br.com.modelagemdominio.rico.produtos.FiltrosProdutos;
 import br.com.modelagemdominio.rico.produtos.Produto;
+import br.com.modelagemdominio.rico.produtos.pg.ProdutosDaConsulta.ProdutoDaLinha;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
-import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
@@ -43,25 +43,10 @@ final class ConsultaSqlDeProdutos {
       for (int indice = 0; indice < parametros.size(); indice++) {
         consulta.setObject(indice + 1, parametros.get(indice));
       }
-      return produtos(consulta, mapeamento);
+      return new ProdutosDaConsulta(consulta, mapeamento).produtos();
     } catch (SQLException falha) {
       LOG.severe("Falha ao listar produtos (SQLState: " + falha.getSQLState() + ").");
       throw new FalhaProduto(FalhaProduto.Motivo.PERSISTENCIA_INDISPONIVEL, falha);
     }
-  }
-
-  private static List<Produto> produtos(PreparedStatement consulta, ProdutoDaLinha mapeamento) throws SQLException {
-    try (ResultSet resultado = consulta.executeQuery()) {
-      List<Produto> produtos = new ArrayList<>();
-      while (resultado.next()) {
-        produtos.add(mapeamento.produto(resultado));
-      }
-      return List.copyOf(produtos);
-    }
-  }
-
-  @FunctionalInterface
-  interface ProdutoDaLinha {
-    Produto produto(ResultSet resultado) throws SQLException;
   }
 }

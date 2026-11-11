@@ -44,7 +44,7 @@ class CadastroClienteTest {
     banco.setUser(System.getenv().getOrDefault("RICO_BANCO_TESTE_USUARIO", "postgres"));
     banco.setPassword(System.getenv().getOrDefault("RICO_BANCO_TESTE_SENHA", ""));
     var sql = new SqlContado(banco);
-    Take api = AplicacaoRica.rotas(sql.banco());
+    Take api = new RotasDaAplicacaoRica(sql.banco()).rotas();
     assertEquals(0, sql.conexoes());
     assertEquals(0, sql.comandos());
     String sufixo = UUID.randomUUID().toString();
@@ -88,7 +88,7 @@ class CadastroClienteTest {
   @ParameterizedTest
   @MethodSource("camposInvalidos")
   void validaAntesDeAcessarOBanco(String campo, String valor, String mensagem) throws Exception {
-    Take api = AplicacaoRica.rotas(new DataSourceSemConexao());
+    Take api = new RotasDaAplicacaoRica(new DataSourceSemConexao()).rotas();
     ObjectNode cliente = this.cliente(CPF, "cliente@example.com").put(campo, valor);
 
     assertEquals(mensagem, this.cadastrar(400, api, cliente).path("detail").asString());
@@ -108,7 +108,7 @@ class CadastroClienteTest {
 
   @Test
   void validaEnderecoCompletoECamposOpcionaisAntesDeAcessarOBanco() throws Exception {
-    Take api = AplicacaoRica.rotas(new DataSourceSemConexao());
+    Take api = new RotasDaAplicacaoRica(new DataSourceSemConexao()).rotas();
     ObjectNode cliente = this.cliente(CPF, "cliente@example.com");
     var endereco = this.endereco().put("codigoCidade", 1);
     cliente.set("endereco", endereco);
@@ -127,7 +127,7 @@ class CadastroClienteTest {
   @ParameterizedTest
   @ValueSource(strings = {"0", "1.5", "9223372036854775808", "null"})
   void recusaCodigoDeCidadeInvalidoAntesDeAcessarOBanco(String codigo) throws Exception {
-    Take api = AplicacaoRica.rotas(new DataSourceSemConexao());
+    Take api = new RotasDaAplicacaoRica(new DataSourceSemConexao()).rotas();
     ObjectNode cliente = this.cliente(CPF, "cliente@example.com");
     ObjectNode endereco = this.endereco();
     endereco.set("codigoCidade", this.json.readTree(codigo));
@@ -150,7 +150,7 @@ class CadastroClienteTest {
       """
   })
   void recusaCorpoInvalidoECamposExtrasAntesDeAcessarOBanco(String corpo) throws Exception {
-    Take api = AplicacaoRica.rotas(new DataSourceSemConexao());
+    Take api = new RotasDaAplicacaoRica(new DataSourceSemConexao()).rotas();
 
     JsonNode problema = this.resposta(400, enviar(api, "/api/clientes", corpo));
 
@@ -162,7 +162,7 @@ class CadastroClienteTest {
     var banco = new HikariDataSource();
     banco.close();
 
-    JsonNode resposta = this.cadastrar(503, AplicacaoRica.rotas(banco),
+    JsonNode resposta = this.cadastrar(503, new RotasDaAplicacaoRica(banco).rotas(),
       this.cliente(CPF, "cliente@example.com"));
 
     assertEquals("Persistência indisponível", resposta.path("title").asString());

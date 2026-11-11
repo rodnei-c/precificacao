@@ -66,7 +66,7 @@ public final class PgCidades implements Cidades {
       for (int indice = 0; indice < parametros.size(); indice++) {
         consulta.setString(indice + 1, parametros.get(indice));
       }
-      return cidadesDaConsulta(consulta);
+      return new CidadesDaConsulta(consulta).cidades();
     } catch (SQLException falha) {
       LOG.severe("Falha ao listar cidades (SQLState: " + falha.getSQLState() + ").");
       throw new FalhaCidade(FalhaCidade.Motivo.PERSISTENCIA_INDISPONIVEL, falha);
@@ -87,21 +87,6 @@ public final class PgCidades implements Cidades {
    * Consulta a cidade na transação do chamador, que mantém a propriedade da conexão.
    */
   public boolean existe(Connection conexao, CodigoCidade codigo) throws SQLException {
-    try (var consulta = conexao.prepareStatement("SELECT 1 FROM public.cidade WHERE codigo = ?")) {
-      consulta.setLong(1, codigo.valor());
-      try (var resultado = consulta.executeQuery()) {
-        return resultado.next();
-      }
-    }
-  }
-
-  private static List<Cidade> cidadesDaConsulta(PreparedStatement consulta) throws SQLException {
-    try (ResultSet resultado = consulta.executeQuery()) {
-      List<Cidade> cidades = new ArrayList<>();
-      while (resultado.next()) {
-        cidades.add(new ResultadoSqlDeCidade(resultado).cidade());
-      }
-      return List.copyOf(cidades);
-    }
+    return new ExistenciaDeCidade(conexao).existe(codigo);
   }
 }

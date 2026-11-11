@@ -1,10 +1,15 @@
 package br.com.modelagemdominio.rico;
 
+import br.com.modelagemdominio.rico.produtos.Dinheiro;
+import br.com.modelagemdominio.rico.produtos.FiltrosProdutos;
+import br.com.modelagemdominio.rico.produtos.pg.PgProdutos;
+import br.com.modelagemdominio.rico.produtos.pg.PgProdutosConstantes;
 import br.com.modelagemdominio.rico.testes.SqlContado;
 import java.math.BigDecimal;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Types;
+import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -47,7 +52,8 @@ class ListaProdutosTest {
         inserir(conexao, segundo, segundoNome, categoria);
         inserir(conexao, primeiro, primeiroNome, null);
         var contagem = new SqlContado(banco);
-        Take api = AplicacaoRica.rotas(contagem.banco());
+        var fonte = contagem.banco();
+        Take api = new RotasDaAplicacaoRica(fonte).rotas();
 
         JsonNode resposta = this.consultar(api, "nome=" + sufixo);
         assertEquals(this.json.readTree("""
@@ -59,6 +65,15 @@ class ListaProdutosTest {
           ]
           """.formatted(primeiro, primeiroNome, segundo, segundoNome, categoria)), resposta);
         assertEquals(1, contagem.comandos(), "A serialização não deve consultar cada atributo ou categoria.");
+        assertEquals(1, contagem.conexoes());
+
+        var filtro = new FiltrosProdutos(Optional.of(sufixo), Optional.empty(), Optional.empty());
+        contagem.zerar();
+        var materializado = new PgProdutosConstantes(fonte).listar(filtro).get(0);
+        var sobDemanda = new PgProdutos(fonte).listar(filtro).get(0);
+        assertEquals(primeiro, materializado.codigo());
+        assertEquals(primeiro, sobDemanda.codigo());
+        assertEquals(2, contagem.comandos());
 
         try (var atualizacao = conexao.prepareStatement(
           "UPDATE public.produto SET preco_venda = 130, percentual = 30 WHERE codigo = ?"
@@ -66,6 +81,12 @@ class ListaProdutosTest {
           atualizacao.setLong(1, primeiro);
           assertEquals(1, atualizacao.executeUpdate());
         }
+        contagem.zerar();
+        assertEquals(new Dinheiro(120), materializado.precificacao().precoVenda());
+        assertEquals(0, contagem.comandos());
+        assertEquals(new Dinheiro(130), sobDemanda.precificacao().precoVenda());
+        assertEquals(1, contagem.comandos());
+
         contagem.zerar();
         JsonNode atualizada = this.consultar(api, "nome=" + sufixo);
         assertEquals(0, new BigDecimal("130.00").compareTo(atualizada.get(0).path("precoVenda").decimalValue()));

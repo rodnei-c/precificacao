@@ -37,7 +37,7 @@ public final class PgFatura implements Fatura {
     try (var conexao = this.banco.getConnection()) {
       return new ConsultaSqlDeFaturas(this.banco).fatura(conexao, this.codigo);
     } catch (SQLException | IllegalArgumentException falha) {
-      throw PgFaturas.falhaLeitura(falha);
+      throw new FalhaNaLeituraDeFatura(falha).traduzida();
     }
   }
 

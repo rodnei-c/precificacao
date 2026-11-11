@@ -6,17 +6,26 @@ import java.io.IOException;
 import tools.jackson.databind.DeserializationFeature;
 import tools.jackson.databind.json.JsonMapper;
 
-record NomeCategoriaJson(String nome) {
+final class NomeCategoriaJson {
 
     private static final JsonMapper JSON = JsonMapper.builder().enable(
         DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES
     ).build();
 
-    static NomeCategoria ler(CorpoJson corpo) throws IOException {
-        NomeCategoriaJson entrada = JSON.readValue(corpo.bytes(), NomeCategoriaJson.class);
+    private final CorpoJson corpo;
+
+    NomeCategoriaJson(CorpoJson corpo) {
+        this.corpo = corpo;
+    }
+
+    NomeCategoria nome() throws IOException {
+        Entrada entrada = JSON.readValue(this.corpo.bytes(), Entrada.class);
         if (entrada == null) {
             throw new IOException("O corpo deve conter um objeto JSON.");
         }
         return new NomeCategoria(entrada.nome());
+    }
+
+    private record Entrada(String nome) {
     }
 }

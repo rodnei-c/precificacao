@@ -28,7 +28,7 @@ class CadastroCategoriaTest {
   @Tag("integracao")
   void cadastraCategoriaERecusaMesmoNomeComOutraCapitalizacao() throws Exception {
     PGSimpleDataSource banco = bancoDeTeste();
-    Take api = AplicacaoRica.rotas(banco);
+    Take api = new RotasDaAplicacaoRica(banco).rotas();
     String nomeDeTeste = "Categoria d'água " + UUID.randomUUID();
     String nome = nomeDeTeste + "x".repeat(200 - nomeDeTeste.length());
 
@@ -65,14 +65,14 @@ class CadastroCategoriaTest {
   @ParameterizedTest
   @ValueSource(strings = {"{}", "{\"nome\":null}", "{\"nome\":\"   \"}"})
   void recusaNomeAusenteOuEmBrancoSemConsultarOBanco(String corpo) throws Exception {
-    RsPrint resposta = enviar(AplicacaoRica.rotas(new DataSourceSemConexao()), corpo);
+    RsPrint resposta = enviar(new RotasDaAplicacaoRica(new DataSourceSemConexao()).rotas(), corpo);
 
     assertProblema(400, "Dados inválidos", "Informe o nome da categoria.", resposta);
   }
 
   @Test
   void recusaNomeAcimaDoLimiteSemConsultarOBanco() throws Exception {
-    Take api = AplicacaoRica.rotas(new DataSourceSemConexao());
+    Take api = new RotasDaAplicacaoRica(new DataSourceSemConexao()).rotas();
 
     RsPrint resposta = enviar(api, "{\"nome\":\"" + "x".repeat(201) + "\"}");
 
@@ -85,14 +85,14 @@ class CadastroCategoriaTest {
     "{\"nome\":\"Livros\"} {\"nome\":\"Outro\"}"
   })
   void recusaJsonInvalidoOuComCampoDesconhecido(String corpo) throws Exception {
-    RsPrint resposta = enviar(AplicacaoRica.rotas(new DataSourceSemConexao()), corpo);
+    RsPrint resposta = enviar(new RotasDaAplicacaoRica(new DataSourceSemConexao()).rotas(), corpo);
 
     assertProblema(400, "Formato inválido", "Confira o formato do JSON e os parâmetros da URL.", resposta);
   }
 
   @Test
   void recusaCaractereNuloAntesDeAcessarOBanco() throws Exception {
-    RsPrint resposta = enviar(AplicacaoRica.rotas(new DataSourceSemConexao()), "{\"nome\":\"Livros\\u0000outro\"}");
+    RsPrint resposta = enviar(new RotasDaAplicacaoRica(new DataSourceSemConexao()).rotas(), "{\"nome\":\"Livros\\u0000outro\"}");
 
     assertProblema(400, "Dados inválidos", "Informe um nome de categoria válido.", resposta);
   }
@@ -102,7 +102,7 @@ class CadastroCategoriaTest {
     HikariDataSource bancoFechado = new HikariDataSource();
     bancoFechado.close();
 
-    RsPrint resposta = enviar(AplicacaoRica.rotas(bancoFechado), "{\"nome\":\"Livros\"}");
+    RsPrint resposta = enviar(new RotasDaAplicacaoRica(bancoFechado).rotas(), "{\"nome\":\"Livros\"}");
 
     assertProblema(503, "Persistência indisponível",
       "Não foi possível concluir a operação no banco de dados.", resposta);
@@ -112,7 +112,7 @@ class CadastroCategoriaTest {
   @Tag("integracao")
   void falhaDeGravacaoNaoViraDuplicidadeENaoAlteraCategoriasExistentes() throws Exception {
     var banco = bancoDeTeste();
-    Take api = AplicacaoRica.rotas(banco);
+    Take api = new RotasDaAplicacaoRica(banco).rotas();
     String sufixo = UUID.randomUUID().toString().replace("-", "");
     String anterior = "Categoria preservada " + sufixo;
     String rejeitada = "Categoria rejeitada " + sufixo;

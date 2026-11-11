@@ -31,7 +31,7 @@ public final class TkCadastroCategoria implements TkRegex {
         String caminho = requisicao.matcher().group();
         NomeCategoria nome;
         try {
-            nome = NomeCategoriaJson.ler(corpo);
+            nome = new NomeCategoriaJson(corpo).nome();
         } catch (JacksonException | IOException falha) {
             return this.respostas.formatoInvalido(caminho);
         } catch (IllegalArgumentException falha) {

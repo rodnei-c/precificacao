@@ -22,7 +22,7 @@ class HistoricoPrecificacaoTest {
   })
   void patchNaoAceitaTrocaDeModalidadeOuCategoria(String corpo) throws Exception {
     byte[] bytes = corpo.getBytes(StandardCharsets.UTF_8);
-    var api = AplicacaoRica.rotas(new DataSourceSemConexao());
+    var api = new RotasDaAplicacaoRica(new DataSourceSemConexao()).rotas();
     var resposta = api.act(new RqFake(List.of(
       "PATCH /api/produtos/1/precificacao HTTP/1.1",
       "Content-Type: application/json", "Content-Length: " + bytes.length
@@ -33,7 +33,7 @@ class HistoricoPrecificacaoTest {
 
   @Test
   void rejeitaCodigoInvalidoAntesDeConsultarOBanco() throws Exception {
-    var api = AplicacaoRica.rotas(new DataSourceSemConexao());
+    var api = new RotasDaAplicacaoRica(new DataSourceSemConexao()).rotas();
 
     for (String codigo : new String[]{"0", "-1", "abc", "9223372036854775808"}) {
       var resposta = api.act(new RqFake("GET", "/api/produtos/" + codigo + "/historico-precificacao"));
@@ -47,7 +47,7 @@ class HistoricoPrecificacaoTest {
     banco.close();
     String caminho = "/api/produtos/1/historico-precificacao";
 
-    var resposta = new RsPrint(AplicacaoRica.rotas(banco).act(new RqFake("GET", caminho)));
+    var resposta = new RsPrint(new RotasDaAplicacaoRica(banco).rotas().act(new RqFake("GET", caminho)));
 
     assertEquals(503, status(resposta.head().iterator().next()));
     assertEquals(caminho, new JsonMapper().readTree(resposta.printBody()).path("instance").asString());

@@ -6,8 +6,10 @@ import br.com.modelagemdominio.rico.faturas.FormaPagamento;
 import br.com.modelagemdominio.rico.faturas.ResumoFatura;
 import br.com.modelagemdominio.rico.faturas.ValoresFatura;
 import br.com.modelagemdominio.rico.faturas.ValoresItemFatura;
+import br.com.modelagemdominio.rico.faturas.VinculosFatura;
 import br.com.modelagemdominio.rico.http.ProblemasHttp;
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonUnwrapped;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -35,14 +37,12 @@ final class RespostasFatura {
     ValoresFatura valores = fatura.valores();
     var vinculos = fatura.vinculos();
     var resposta = new FaturaResposta(fatura.codigo(), fatura.dataCriacao(),
-      valores.itens().stream().map(ItemResposta::new).toList(), valores.subtotal(), valores.descontoAplicado(),
-      valores.total(), vinculos.codigoCliente().orElse(null), vinculos.formaPagamento().orElse(null));
+      new ValoresResposta(valores), new VinculosResposta(vinculos));
     return this.json(resposta);
   }
 
   Response simulacao(ValoresFatura valores) {
-    return this.json(new ValoresResposta(valores.itens().stream().map(ItemResposta::new).toList(),
-      valores.subtotal(), valores.descontoAplicado(), valores.total()));
+    return this.json(new ValoresResposta(valores));
   }
 
   Response lista(List<ResumoFatura> faturas) {
@@ -76,10 +76,8 @@ final class RespostasFatura {
     };
   }
 
-  private record FaturaResposta(long codigo, LocalDateTime dataCriacao, List<ItemResposta> itens, BigDecimal subtotal,
-    BigDecimal descontoAplicado, BigDecimal total,
-    @JsonInclude(JsonInclude.Include.NON_NULL) Long codigoCliente,
-    @JsonInclude(JsonInclude.Include.NON_NULL) FormaPagamento formaPagamento) {
+  private record FaturaResposta(long codigo, LocalDateTime dataCriacao,
+    @JsonUnwrapped ValoresResposta valores, @JsonUnwrapped VinculosResposta vinculos) {
   }
 
   private record ItemResposta(long codigoProduto, BigDecimal quantidade, BigDecimal precoVenda, BigDecimal subtotal) {
@@ -89,15 +87,27 @@ final class RespostasFatura {
   }
 
   private record ValoresResposta(List<ItemResposta> itens, BigDecimal subtotal, BigDecimal descontoAplicado, BigDecimal total) {
+
+    ValoresResposta(ValoresFatura valores) {
+      this(valores.itens().stream().map(ItemResposta::new).toList(),
+        valores.subtotal(), valores.descontoAplicado(), valores.total());
+    }
   }
 
-  private record ResumoResposta(long codigo, LocalDateTime dataCriacao, long quantidadeItens,
+  private record VinculosResposta(
     @JsonInclude(JsonInclude.Include.NON_NULL) Long codigoCliente,
     @JsonInclude(JsonInclude.Include.NON_NULL) FormaPagamento formaPagamento) {
 
+    VinculosResposta(VinculosFatura vinculos) {
+      this(vinculos.codigoCliente().orElse(null), vinculos.formaPagamento().orElse(null));
+    }
+  }
+
+  private record ResumoResposta(long codigo, LocalDateTime dataCriacao, long quantidadeItens,
+    @JsonUnwrapped VinculosResposta vinculos) {
+
     ResumoResposta(ResumoFatura resumo) {
-      this(resumo.codigo(), resumo.dataCriacao(), resumo.quantidadeItens(),
-        resumo.vinculos().codigoCliente().orElse(null), resumo.vinculos().formaPagamento().orElse(null));
+      this(resumo.codigo(), resumo.dataCriacao(), resumo.quantidadeItens(), new VinculosResposta(resumo.vinculos()));
     }
   }
 }

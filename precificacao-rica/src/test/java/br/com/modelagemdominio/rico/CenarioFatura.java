@@ -39,7 +39,7 @@ final class CenarioFatura implements AutoCloseable {
     this.banco.setPassword(System.getenv("RICO_BANCO_TESTE_SENHA"));
     this.banco.setApplicationName("teste-fatura-" + UUID.randomUUID());
     this.sql = new SqlContado(this.banco);
-    this.api = AplicacaoRica.rotas(this.sql.banco());
+    this.api = new RotasDaAplicacaoRica(this.sql.banco()).rotas();
     try {
       this.cliente = this.novoCliente("52998224725");
       for (String preco : List.of(precos)) {

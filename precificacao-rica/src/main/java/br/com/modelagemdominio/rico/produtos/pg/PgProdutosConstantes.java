@@ -1,6 +1,7 @@
 package br.com.modelagemdominio.rico.produtos.pg;
 
 import br.com.modelagemdominio.rico.categorias.CodigoCategoria;
+import br.com.modelagemdominio.rico.produtos.CodigoProduto;
 import br.com.modelagemdominio.rico.produtos.FalhaProduto;
 import br.com.modelagemdominio.rico.produtos.FiltrosProdutos;
 import br.com.modelagemdominio.rico.produtos.NomeProduto;
@@ -42,15 +43,13 @@ public final class PgProdutosConstantes implements Produtos, ProdutosNaConexao {
 
   @Override
   public Produto produto(long codigo) throws FalhaProduto {
-    if (codigo <= 0) {
-      throw new FalhaProduto(FalhaProduto.Motivo.CODIGO_INVALIDO);
-    }
+    var referencia = new CodigoProduto(codigo);
     try (Connection conexao = this.banco.getConnection();
       PreparedStatement consulta = conexao.prepareStatement("""
         SELECT codigo, nome, custo, preco_venda, percentual, modalidade_precificacao, categoria_codigo
         FROM public.produto WHERE codigo = ?
         """)) {
-      consulta.setLong(1, codigo);
+      consulta.setLong(1, referencia.valor());
       try (ResultSet resultado = consulta.executeQuery()) {
         if (!resultado.next()) {
           throw new FalhaProduto(FalhaProduto.Motivo.PRODUTO_AUSENTE);
@@ -127,7 +126,7 @@ public final class PgProdutosConstantes implements Produtos, ProdutosNaConexao {
   public List<Produto> listar(FiltrosProdutos filtros) throws FalhaProduto {
     return new ConsultaSqlDeProdutos(this.banco).listar(
       "codigo, nome, custo, preco_venda, percentual, modalidade_precificacao, categoria_codigo",
-      filtros, resultado -> new ResultadoSqlDeProduto(resultado, this.produtoPorCodigo).produto()
+      filtros, this::daLinha
     );
   }
 

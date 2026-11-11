@@ -71,6 +71,7 @@
       <arg value="br.com.modelagemdominio.rico.categorias.pg.FalhaNaRenomeacaoCategoriaTest" />
       <arg value="br.com.modelagemdominio.rico.cidades.CodigoCidadeTest" />
       <arg value="br.com.modelagemdominio.rico.cidades.SiglaUfTest" />
+      <arg value="br.com.modelagemdominio.rico.cidades.pg.CidadesDaConsultaTest" />
       <arg value="br.com.modelagemdominio.rico.CadastroCidadeTest" />
       <arg value="br.com.modelagemdominio.rico.CadastroClienteTest" />
       <arg value="br.com.modelagemdominio.rico.CadastroFaturaTest" />
@@ -86,6 +87,10 @@
       <arg value="br.com.modelagemdominio.rico.clientes.AlteracoesCampoTest" />
       <arg value="br.com.modelagemdominio.rico.clientes.TelefoneOpcionalTest" />
       <arg value="br.com.modelagemdominio.rico.clientes.CpfTest" />
+      <arg value="br.com.modelagemdominio.rico.clientes.pg.FalhasDeClienteTest" />
+      <arg value="br.com.modelagemdominio.rico.faturas.pg.FalhasDeFaturaTest" />
+      <arg value="br.com.modelagemdominio.rico.RotasDaAplicacaoRicaTest" />
+      <arg value="br.com.modelagemdominio.rico.EntidadesMaterializadasTest" />
       <arg value="br.com.modelagemdominio.rico.HistoricoPrecificacaoTest" />
       <arg value="br.com.modelagemdominio.rico.infraestrutura.banco.EnderecoPostgresTest" />
       <arg value="br.com.modelagemdominio.rico.infraestrutura.banco.CriacaoBancoPostgresTest" />
@@ -95,6 +100,8 @@
       <arg value="br.com.modelagemdominio.rico.ListaFaturasTest" />
       <arg value="br.com.modelagemdominio.rico.ListaFaturasPostgresTest" />
       <arg value="br.com.modelagemdominio.rico.ListaProdutosTest" />
+      <arg value="br.com.modelagemdominio.rico.produtos.PrecificacaoTest" />
+      <arg value="br.com.modelagemdominio.rico.produtos.pg.FalhaNaGravacaoProdutoTest" />
       <arg value="br.com.modelagemdominio.rico.ReprecificacaoPostgresTest" />
       <arg value="br.com.modelagemdominio.rico.RenomeacaoCategoriaPostgresTest" />
       <arg value="br.com.modelagemdominio.rico.faturas.QuantidadeTest" />

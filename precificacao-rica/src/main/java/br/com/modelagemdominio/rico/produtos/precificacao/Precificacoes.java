@@ -4,6 +4,7 @@ import br.com.modelagemdominio.rico.produtos.Dinheiro;
 import br.com.modelagemdominio.rico.produtos.Percentual;
 import br.com.modelagemdominio.rico.produtos.Precificacao;
 import br.com.modelagemdominio.rico.produtos.ValorInvalido;
+import br.com.modelagemdominio.rico.produtos.VendaNaoInferiorAoCusto;
 import java.math.BigDecimal;
 
 import static java.math.RoundingMode.HALF_EVEN;
@@ -45,20 +46,19 @@ public final class Precificacoes {
     Dinheiro vendaFinal = this.dinheiro(precoVenda.setScale(2, HALF_EVEN), "preço de venda");
     Percentual percentualFinal = this.percentual(percentual.setScale(4, HALF_EVEN));
 
-    this.validarOrdem(custoFinal, vendaFinal);
-    if (percentualFinal.valor().signum() > 0 && vendaFinal.comparar(custoFinal) == 0) {
-      throw new PrecificacaoInvalida(
-        "O percentual positivo deve produzir preço de venda maior que o custo após o arredondamento."
-      );
+    try {
+      return new PrecificacaoParaCadastro(new Precificacao(
+        custoFinal, vendaFinal, percentualFinal, this.regra.modalidade()
+      ));
+    } catch (IllegalArgumentException falha) {
+      throw new PrecificacaoInvalida(falha.getMessage(), falha);
     }
-    return new PrecificacaoParaCadastro(new Precificacao(
-      custoFinal, vendaFinal, percentualFinal, this.regra.modalidade()
-    ));
   }
 
   private void validarOrdem(Dinheiro custo, Dinheiro precoVenda) throws PrecificacaoInvalida {
-    if (precoVenda.comparar(custo) < 0) {
-      throw new PrecificacaoInvalida("O preço de venda não pode ser inferior ao custo.");
+    var violacao = new VendaNaoInferiorAoCusto(custo, precoVenda).violacao();
+    if (violacao.isPresent()) {
+      throw new PrecificacaoInvalida(violacao.orElseThrow());
     }
   }
 

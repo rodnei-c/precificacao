@@ -16,11 +16,15 @@ final class ResultadoSqlDePrecificacao {
     }
 
     Precificacao precificacao() throws SQLException {
-        return new Precificacao(
-            new Dinheiro(this.resultado.getBigDecimal("custo")),
-            new Dinheiro(this.resultado.getBigDecimal("preco_venda")),
-            new Percentual(this.resultado.getBigDecimal("percentual")),
-            ModalidadePrecificacao.valueOf(this.resultado.getString("modalidade_precificacao"))
-        );
+        try {
+            return new Precificacao(
+                new Dinheiro(this.resultado.getBigDecimal("custo")),
+                new Dinheiro(this.resultado.getBigDecimal("preco_venda")),
+                new Percentual(this.resultado.getBigDecimal("percentual")),
+                ModalidadePrecificacao.valueOf(this.resultado.getString("modalidade_precificacao"))
+            );
+        } catch (IllegalArgumentException falha) {
+            throw new SQLException("Precificação inválida no banco.", falha);
+        }
     }
 }

@@ -37,7 +37,7 @@ class CategoriaDoProdutoTest {
   @ParameterizedTest
   @ValueSource(strings = {"0", "-1", "1.5", "9223372036854775808"})
   void rejeitaCodigoInvalidoAntesDeAcessarOBanco(String codigo) throws Exception {
-    Take api = AplicacaoRica.rotas(new DataSourceSemConexao());
+    Take api = new RotasDaAplicacaoRica(new DataSourceSemConexao()).rotas();
 
     RsPrint resposta = cadastrarProduto(api, "Produto inválido", codigo);
 
@@ -49,7 +49,7 @@ class CategoriaDoProdutoTest {
   @Tag("integracao")
   void persisteCategoriaOpcionalEConsultaOProduto() throws Exception {
     PGSimpleDataSource banco = bancoDeTeste();
-    Take api = AplicacaoRica.rotas(banco);
+    Take api = new RotasDaAplicacaoRica(banco).rotas();
     UUID sufixo = UUID.randomUUID();
     String categoria = "Categoria " + sufixo;
     String comCategoria = "Produto vinculado " + sufixo;
@@ -100,7 +100,7 @@ class CategoriaDoProdutoTest {
     String nome = "Produto recusado " + UUID.randomUUID();
     try (Connection conexao = banco.getConnection()) {
       try {
-        RsPrint resposta = cadastrarProduto(AplicacaoRica.rotas(banco), nome, Long.toString(Long.MAX_VALUE));
+        RsPrint resposta = cadastrarProduto(new RotasDaAplicacaoRica(banco).rotas(), nome, Long.toString(Long.MAX_VALUE));
 
         assertEquals("Categoria não encontrada.", this.corpo(404, resposta).path("detail").asString());
         try (var consulta = conexao.prepareStatement("SELECT 1 FROM public.produto WHERE nome = ?")) {
@@ -118,7 +118,7 @@ class CategoriaDoProdutoTest {
   @ParameterizedTest
   @ValueSource(strings = {"{}", "{\"codigoCategoria\":null}", "{\"codigoCategoria\":1.5}"})
   void patchExigeCodigoDeCategoriaInteiroESemAcessarOBanco(String alteracao) throws Exception {
-    Take api = AplicacaoRica.rotas(new DataSourceSemConexao());
+    Take api = new RotasDaAplicacaoRica(new DataSourceSemConexao()).rotas();
 
     JsonNode problema = this.corpo(400, alterarCategoria(api, "1", alteracao));
 
@@ -127,7 +127,7 @@ class CategoriaDoProdutoTest {
 
   @Test
   void patchRecusaCodigoDeProdutoInvalidoSemAcessarOBanco() throws Exception {
-    Take api = AplicacaoRica.rotas(new DataSourceSemConexao());
+    Take api = new RotasDaAplicacaoRica(new DataSourceSemConexao()).rotas();
 
     JsonNode problema = this.corpo(400, alterarCategoria(api, "0", "{\"codigoCategoria\":1}"));
 
@@ -138,7 +138,7 @@ class CategoriaDoProdutoTest {
   @Tag("integracao")
   void trocaSomenteACategoriaEConservaOVinculoSeAProximaTrocaFalhar() throws Exception {
     PGSimpleDataSource banco = bancoDeTeste();
-    Take api = AplicacaoRica.rotas(banco);
+    Take api = new RotasDaAplicacaoRica(banco).rotas();
     UUID sufixo = UUID.randomUUID();
     String categoriaAnterior = "Categoria anterior " + sufixo;
     String categoriaNova = "Categoria nova " + sufixo;
@@ -185,7 +185,7 @@ class CategoriaDoProdutoTest {
   void indisponibilidadeAoValidarCategoriaRetorna503(String metodo) throws Exception {
     var banco = new HikariDataSource();
     banco.close();
-    Take api = AplicacaoRica.rotas(banco);
+    Take api = new RotasDaAplicacaoRica(banco).rotas();
     RsPrint resposta = "POST".equals(metodo)
       ? cadastrarProduto(api, "Produto indisponível", "1")
       : alterarCategoria(api, "1", "{\"codigoCategoria\":1}");
@@ -199,7 +199,7 @@ class CategoriaDoProdutoTest {
   @ValueSource(strings = {"POST", "PATCH"})
   void falhaDeOutraChaveEstrangeiraNaoInformaCategoriaAusente(String metodo) throws Exception {
     var banco = bancoDeTeste();
-    Take api = AplicacaoRica.rotas(banco);
+    Take api = new RotasDaAplicacaoRica(banco).rotas();
     String sufixo = UUID.randomUUID().toString().replace("-", "");
     String categoria = "Categoria preservada " + sufixo;
     String produtoAnterior = "Produto preservado " + sufixo;
@@ -257,7 +257,7 @@ class CategoriaDoProdutoTest {
     "modalidadePrecificacao=DESCONHECIDA", "modalidadePrecificacao=++", "categoria=++"
   })
   void recusaFiltrosInvalidosAntesDeAcessarOBanco(String filtros) throws Exception {
-    Take api = AplicacaoRica.rotas(new DataSourceSemConexao());
+    Take api = new RotasDaAplicacaoRica(new DataSourceSemConexao()).rotas();
 
     JsonNode problema = this.corpo(400, consultarLista(api, "?" + filtros));
 
@@ -268,7 +268,7 @@ class CategoriaDoProdutoTest {
   @Tag("integracao")
   void combinaFiltrosSemTratarCaracteresDoNomeComoCuringas() throws Exception {
     PGSimpleDataSource banco = bancoDeTeste();
-    Take api = AplicacaoRica.rotas(banco);
+    Take api = new RotasDaAplicacaoRica(banco).rotas();
     UUID sufixo = UUID.randomUUID();
     String categoria = "Categoria filtros " + sufixo;
     String prefixo = "Cafe " + sufixo + " ";
@@ -332,7 +332,7 @@ class CategoriaDoProdutoTest {
     HikariDataSource banco = new HikariDataSource();
     banco.close();
 
-    JsonNode problema = this.corpo(503, consultarLista(AplicacaoRica.rotas(banco)));
+    JsonNode problema = this.corpo(503, consultarLista(new RotasDaAplicacaoRica(banco).rotas()));
 
     assertEquals("Persistência indisponível", problema.path("title").asString());
     assertEquals("/api/produtos", problema.path("instance").asString());
@@ -341,7 +341,7 @@ class CategoriaDoProdutoTest {
   @ParameterizedTest
   @ValueSource(strings = {"0", "-1", "1.5", "9223372036854775808"})
   void renomeacaoRecusaCodigoDeCategoriaInvalidoAntesDeAcessarOBanco(String codigo) throws Exception {
-    Take api = AplicacaoRica.rotas(new DataSourceSemConexao());
+    Take api = new RotasDaAplicacaoRica(new DataSourceSemConexao()).rotas();
 
     this.corpo(400, renomearCategoria(api, codigo, """
       {"nome":"Alimentos"}
@@ -350,7 +350,7 @@ class CategoriaDoProdutoTest {
 
   @Test
   void renomeacaoReutilizaValidacaoDeNomeERejeitaCamposExtras() throws Exception {
-    Take api = AplicacaoRica.rotas(new DataSourceSemConexao());
+    Take api = new RotasDaAplicacaoRica(new DataSourceSemConexao()).rotas();
 
     JsonNode nomeEmBranco = this.corpo(400, renomearCategoria(api, "1", """
       {"nome":"   "}
@@ -368,7 +368,7 @@ class CategoriaDoProdutoTest {
     var banco = new HikariDataSource();
     banco.close();
 
-    JsonNode problema = this.corpo(503, renomearCategoria(AplicacaoRica.rotas(banco), "1", """
+    JsonNode problema = this.corpo(503, renomearCategoria(new RotasDaAplicacaoRica(banco).rotas(), "1", """
       {"nome":"Alimentos"}
       """));
 
@@ -379,7 +379,7 @@ class CategoriaDoProdutoTest {
   @Tag("integracao")
   void renomeiaCategoriaVinculadaPreservandoProdutoEHistorico() throws Exception {
     PGSimpleDataSource banco = bancoDeTeste();
-    Take api = AplicacaoRica.rotas(banco);
+    Take api = new RotasDaAplicacaoRica(banco).rotas();
     UUID sufixo = UUID.randomUUID();
     String nomeOriginal = "Categoria original " + sufixo;
     String novoNome = "Cafés d'avó " + sufixo;

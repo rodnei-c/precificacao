@@ -168,7 +168,7 @@ class SimulacaoFaturaPostgresTest {
         assertEquals("on", resultado.getString(1));
       }
       var sql = new SqlContado(banco);
-      return new Simulacao(AplicacaoRica.rotas(sql.banco()), sql);
+      return new Simulacao(new RotasDaAplicacaoRica(sql.banco()).rotas(), sql);
     }
 
     JsonNode enviar(JsonNode pedido, int status, int comandos) throws Exception {

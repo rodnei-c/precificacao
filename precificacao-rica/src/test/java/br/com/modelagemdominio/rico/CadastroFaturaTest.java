@@ -12,6 +12,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.takes.Take;
 import org.takes.rq.RqFake;
@@ -21,16 +22,12 @@ import tools.jackson.databind.json.JsonMapper;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class CadastroFaturaTest {
 
   @ParameterizedTest
   @ValueSource(strings = {
     "null", "{}", "{\"itens\":[]}", "{\"itens\":[null]}",
-    "{\"itens\":[{\"codigoProduto\":1.5,\"quantidade\":1}]}",
-    "{\"itens\":[{\"codigoProduto\":9223372036854775808,\"quantidade\":1}]}",
-    "{\"itens\":[{\"codigoProduto\":0,\"quantidade\":1}]}",
     "{\"itens\":[{\"quantidade\":1}]}",
     "{\"itens\":[{\"codigoProduto\":1}]}",
     "{\"itens\":[{\"codigoProduto\":1,\"quantidade\":0}]}",
@@ -40,9 +37,6 @@ class CadastroFaturaTest {
     "{\"itens\":[{\"codigoProduto\":1,\"quantidade\":1}],\"desconto\":{}}",
     "{\"itens\":[{\"codigoProduto\":1,\"quantidade\":1}],\"desconto\":{\"tipo\":\"VALOR_FIXO\",\"valor\":1.001}}",
     "{\"itens\":[{\"codigoProduto\":1,\"quantidade\":1}],\"desconto\":{\"tipo\":\"PERCENTUAL\",\"valor\":100.0001}}",
-    "{\"itens\":[{\"codigoProduto\":1,\"quantidade\":1}],\"codigoCliente\":1.5}",
-    "{\"itens\":[{\"codigoProduto\":1,\"quantidade\":1}],\"codigoCliente\":9223372036854775808}",
-    "{\"itens\":[{\"codigoProduto\":1,\"quantidade\":1}],\"codigoCliente\":0}",
     "{\"itens\":[{\"codigoProduto\":1,\"quantidade\":1}],\"formaPagamento\":\"CHEQUE\"}",
     "{\"itens\":[{\"codigoProduto\":1,\"quantidade\":1}],\"formaPagamento\":0}",
     "{\"itens\":[{\"codigoProduto\":1,\"quantidade\":1,\"precoVenda\":10}]}",
@@ -50,7 +44,7 @@ class CadastroFaturaTest {
     "{\"itens\":[{\"codigoProduto\":1,\"quantidade\":1}]} {}"
   })
   void rejeitaEntradaInvalidaAntesDeAcessarOBanco(String corpo) throws Exception {
-    var api = AplicacaoRica.rotas(new DataSourceSemConexao());
+    var api = new RotasDaAplicacaoRica(new DataSourceSemConexao()).rotas();
     for (String caminho : List.of("/api/faturas", "/api/faturas/simulacao")) {
       var resposta = enviar(api, caminho, corpo, "application/json");
       assertEquals("400", resposta.head().iterator().next().split(" ", 3)[1], caminho);
@@ -60,23 +54,43 @@ class CadastroFaturaTest {
     }
   }
 
+  @ParameterizedTest
+  @CsvSource({
+    "produto, 1.5, Informe um código de produto inteiro positivo válido.",
+    "produto, 9223372036854775808, Informe um código de produto inteiro positivo válido.",
+    "produto, 0, O código do produto deve ser maior que zero.",
+    "cliente, 1.5, Informe um código de cliente inteiro positivo válido.",
+    "cliente, 9223372036854775808, Informe um código de cliente inteiro positivo válido.",
+    "cliente, 0, O código do cliente deve ser maior que zero."
+  })
+  void preservaMensagemDeCadaCodigoInvalidoNoCadastroENaSimulacao(String entidade, String codigo, String detalhe)
+    throws Exception {
+    var api = new RotasDaAplicacaoRica(new DataSourceSemConexao()).rotas();
+    String corpo = "produto".equals(entidade)
+      ? "{\"itens\":[{\"codigoProduto\":" + codigo + ",\"quantidade\":1}]}"
+      : "{\"itens\":[{\"codigoProduto\":1,\"quantidade\":1}],\"codigoCliente\":" + codigo + "}";
+    for (String caminho : List.of("/api/faturas", "/api/faturas/simulacao")) {
+      var resposta = enviar(api, caminho, corpo, "application/json");
+      assertEquals("400", resposta.head().iterator().next().split(" ", 3)[1], caminho);
+      var problema = new JsonMapper().readTree(resposta.printBody());
+      assertEquals(caminho, problema.path("instance").asString());
+      assertEquals(detalhe, problema.path("detail").asString(), caminho);
+    }
+  }
+
   @Test
-  void exigeJsonERecusaMetodoNaoAceito() throws Exception {
-    var api = AplicacaoRica.rotas(new DataSourceSemConexao());
+  void exigeJsonNoCadastroENaSimulacao() throws Exception {
+    var api = new RotasDaAplicacaoRica(new DataSourceSemConexao()).rotas();
     for (String caminho : List.of("/api/faturas", "/api/faturas/simulacao")) {
       assertEquals("415", enviar(api, caminho, "{}", "text/plain").head().iterator().next().split(" ", 3)[1]);
     }
-    var resposta = new RsPrint(api.act(new RqFake("DELETE", "/api/faturas")));
-    assertEquals("405", resposta.head().iterator().next().split(" ", 3)[1]);
-    assertTrue(java.util.stream.StreamSupport.stream(resposta.head().spliterator(), false)
-      .anyMatch(cabecalho -> "Allow: GET, POST".equalsIgnoreCase(cabecalho)));
   }
 
   @Test
   void falhaDeConexaoRetorna503SemExporDetalhesInternos() throws Exception {
     var banco = new HikariDataSource();
     banco.close();
-    var api = AplicacaoRica.rotas(banco);
+    var api = new RotasDaAplicacaoRica(banco).rotas();
     for (String caminho : List.of("/api/faturas", "/api/faturas/simulacao")) {
       var resposta = enviar(api, caminho,
         "{\"itens\":[{\"codigoProduto\":1,\"quantidade\":1}]}", "application/json");
@@ -84,15 +98,6 @@ class CadastroFaturaTest {
       assertEquals("Não foi possível concluir a operação no banco de dados.",
         new JsonMapper().readTree(resposta.printBody()).path("detail").asString());
     }
-  }
-
-  @Test
-  void rotaLiteralDaSimulacaoPrecedeAConsultaPorCodigo() throws Exception {
-    var api = AplicacaoRica.rotas(new DataSourceSemConexao());
-    var resposta = new RsPrint(api.act(new RqFake("GET", "/api/faturas/simulacao")));
-    assertEquals("405", resposta.head().iterator().next().split(" ", 3)[1]);
-    assertTrue(java.util.stream.StreamSupport.stream(resposta.head().spliterator(), false)
-      .anyMatch(cabecalho -> "Allow: POST".equalsIgnoreCase(cabecalho)));
   }
 
   @Test

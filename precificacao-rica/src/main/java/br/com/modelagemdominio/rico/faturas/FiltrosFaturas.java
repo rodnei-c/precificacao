@@ -23,8 +23,8 @@ public record FiltrosFaturas(Optional<LocalDate> inicio, Optional<LocalDate> fim
     Objects.requireNonNull(inicio);
     Objects.requireNonNull(fim);
     Objects.requireNonNull(codigoCliente);
-    inicio.ifPresent(FiltrosFaturas::validarData);
-    fim.ifPresent(FiltrosFaturas::validarData);
+    inicio = inicio.map(data -> new DataDaConsultaDeFaturas(data).validada());
+    fim = fim.map(data -> new DataDaConsultaDeFaturas(data).validada());
     if (inicio.isPresent() && fim.isPresent() && inicio.orElseThrow().isAfter(fim.orElseThrow())) {
       throw new FaturaInvalida("A data inicial deve ser anterior ou igual à data final.");
     }
@@ -41,11 +41,5 @@ public record FiltrosFaturas(Optional<LocalDate> inicio, Optional<LocalDate> fim
   /** @return começo do dia seguinte, para incluir todo o último dia na consulta */
   public Optional<LocalDateTime> fimExclusivo() {
     return this.fim.map(data -> data.plusDays(1).atStartOfDay());
-  }
-
-  private static void validarData(LocalDate data) {
-    if (data.getYear() < 1 || data.getYear() > 9999) {
-      throw new FaturaInvalida("Informe datas entre 0001-01-01 e 9999-12-31.");
-    }
   }
 }

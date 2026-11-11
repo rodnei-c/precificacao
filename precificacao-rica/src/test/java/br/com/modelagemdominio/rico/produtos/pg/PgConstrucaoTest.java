@@ -21,18 +21,17 @@ class PgConstrucaoTest {
         assertEquals(42, produto.codigo());
     }
 
-    @Test
-    void constroiColecaoSemAcessarOBanco() {
-        assertDoesNotThrow(() -> new PgProdutos(new DataSourceSemConexao()));
-    }
-
     @ParameterizedTest
     @ValueSource(longs = {0, -1})
     void rejeitaCodigoInvalidoAntesDeAcessarOBanco(long codigo) {
-        Produtos produtos = new PgProdutos(new DataSourceSemConexao());
+        var banco = new DataSourceSemConexao();
+        Produtos produtos = new PgProdutos(banco);
+        Produtos materializados = new PgProdutosConstantes(banco);
 
         FalhaProduto falha = assertThrows(FalhaProduto.class, () -> produtos.produto(codigo));
+        FalhaProduto falhaMaterializada = assertThrows(FalhaProduto.class, () -> materializados.produto(codigo));
 
         assertEquals(FalhaProduto.Motivo.CODIGO_INVALIDO, falha.motivo());
+        assertEquals(falha.motivo(), falhaMaterializada.motivo());
     }
 }

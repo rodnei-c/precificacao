@@ -23,14 +23,15 @@ class EnderecoPostgresTest {
     "jdbc:postgresql://localhost/base%2Bteste|jdbc:postgresql://localhost/postgres|base+teste"
   })
   void preservaDestinoEOpcoesDaConexao(String url, String manutencao, String nome) {
-    var endereco = EnderecoPostgres.daUrl(url, "postgres");
+    var endereco = new UrlPostgres(url, "postgres").endereco();
+    assertEquals(url, endereco.url());
     assertEquals(nome, endereco.nome());
     assertEquals(manutencao, endereco.manutencao());
   }
 
   @Test
   void protegeIdentificadorESuportaManutencaoConfiguravel() {
-    var endereco = EnderecoPostgres.daUrl("jdbc:postgresql://localhost/base%22%3B--?sslmode=require", "admin banco");
+    var endereco = new UrlPostgres("jdbc:postgresql://localhost/base%22%3B--?sslmode=require", "admin banco").endereco();
     assertEquals("\"base\"\";--\"", endereco.identificadorSql());
     assertEquals("jdbc:postgresql://localhost/admin%20banco?sslmode=require", endereco.manutencao());
   }
@@ -42,15 +43,23 @@ class EnderecoPostgresTest {
     "jdbc:postgresql://localhost/base?PGDBNAME=outro"
   })
   void rejeitaUrlSemBancoValidoOuQueDesviaAManutencao(String url) {
-    assertThrows(FalhaInicializacaoBanco.class, () -> EnderecoPostgres.daUrl(url, "postgres"));
+    assertThrows(FalhaInicializacaoBanco.class, () -> new UrlPostgres(url, "postgres").endereco());
   }
 
   @Test
   void rejeitaNomesQueSeriamTruncadosEmBytes() {
     for (String nome : new String[]{"a".repeat(64), "á".repeat(32)}) {
       assertThrows(FalhaInicializacaoBanco.class,
-        () -> EnderecoPostgres.daUrl("jdbc:postgresql://localhost/" + nome, "postgres"));
+        () -> new UrlPostgres("jdbc:postgresql://localhost/" + nome, "postgres").endereco());
     }
+  }
+
+  @ParameterizedTest
+  @CsvSource({"'  TrUe  ', true", "'  FaLsE  ', false"})
+  void interpretaOpcaoDeCriacaoDoAmbiente(String valor, boolean esperado) {
+    var configuracao = new ConfiguracaoPostgres(Map.of("DB_PASSWORD", "teste", "RICO_DB_CRIAR_SE_AUSENTE", valor));
+
+    assertEquals(esperado, configuracao.criarSeAusente());
   }
 
   @Test

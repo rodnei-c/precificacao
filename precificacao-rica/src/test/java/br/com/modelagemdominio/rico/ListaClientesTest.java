@@ -63,7 +63,7 @@ class ListaClientesTest {
     var banco = new HikariDataSource();
     banco.close();
 
-    var resposta = consultar(AplicacaoRica.rotas(banco));
+    var resposta = consultar(new RotasDaAplicacaoRica(banco).rotas());
 
     assertStatus(503, resposta);
     var problema = new JsonMapper().readTree(resposta.printBody());

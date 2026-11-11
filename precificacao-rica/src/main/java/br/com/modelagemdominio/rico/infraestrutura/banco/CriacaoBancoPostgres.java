@@ -17,11 +17,11 @@ final class CriacaoBancoPostgres {
     this.endereco = endereco;
   }
 
-  void garantirExistencia() throws SQLException {
+  void garantirExistencia(boolean criarSeAusente) throws SQLException {
     try (var conexao = this.conexoes.abrir(this.endereco.url())) {
       return;
     } catch (SQLException falha) {
-      if (!"3D000".equals(falha.getSQLState())) {
+      if (!criarSeAusente || !"3D000".equals(falha.getSQLState())) {
         throw falha;
       }
     }

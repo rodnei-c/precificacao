@@ -26,7 +26,7 @@ class AlteracaoClienteTest {
   @ParameterizedTest
   @MethodSource("alteracoesInvalidas")
   void rejeitaCorpoInvalidoAntesDeAcessarOBanco(String corpo, String detalhe) throws Exception {
-    Take api = AplicacaoRica.rotas(new DataSourceSemConexao());
+    Take api = new RotasDaAplicacaoRica(new DataSourceSemConexao()).rotas();
 
     assertEquals(detalhe, this.problema(400, api, "1", corpo).path("detail").asString());
   }
@@ -36,6 +36,8 @@ class AlteracaoClienteTest {
       Arguments.of("", "Confira o formato do JSON."),
       Arguments.of("{}", "Informe o e-mail, telefone ou endereço a ser atualizado."),
       Arguments.of("{\"email\":null}", "O campo email é obrigatório."),
+      Arguments.of("{\"email\":\"  \"}", "O campo email é obrigatório."),
+      Arguments.of("{\"email\":\"invalido\",\"telefone\":123}", "Confira o formato do JSON."),
       Arguments.of("{\"email\":\"invalido\"}", "Informe um e-mail válido."),
       Arguments.of("{\"email\":\"" + "x".repeat(243) + "@example.com\"}",
         "O campo email deve conter texto válido de até 254 caracteres."),
@@ -64,14 +66,14 @@ class AlteracaoClienteTest {
     "[]", "\"Rua\""
   })
   void rejeitaEnderecoInvalidoSemGravarContatos(String endereco) throws Exception {
-    this.problema(400, AplicacaoRica.rotas(new DataSourceSemConexao()), "1",
+    this.problema(400, new RotasDaAplicacaoRica(new DataSourceSemConexao()).rotas(), "1",
       "{\"email\":\"novo@example.com\",\"telefone\":\"(41) 3333-4444\",\"endereco\":" + endereco + "}");
   }
 
   @ParameterizedTest
   @ValueSource(strings = {"0", "abc"})
   void rejeitaCodigoInvalidoAntesDeAcessarOBanco(String codigo) throws Exception {
-    Take api = AplicacaoRica.rotas(new DataSourceSemConexao());
+    Take api = new RotasDaAplicacaoRica(new DataSourceSemConexao()).rotas();
 
     JsonNode problema = this.problema(400, api, codigo, "{\"email\":\"novo@example.com\"}");
 
@@ -83,7 +85,7 @@ class AlteracaoClienteTest {
     var banco = new HikariDataSource();
     banco.close();
 
-    JsonNode problema = this.problema(503, AplicacaoRica.rotas(banco), "1", "{\"email\":\"novo@example.com\"}");
+    JsonNode problema = this.problema(503, new RotasDaAplicacaoRica(banco).rotas(), "1", "{\"email\":\"novo@example.com\"}");
 
     assertEquals("Persistência indisponível", problema.path("title").asString());
   }

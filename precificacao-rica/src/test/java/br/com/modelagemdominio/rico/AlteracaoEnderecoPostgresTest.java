@@ -224,7 +224,7 @@ class AlteracaoEnderecoPostgresTest {
       this.banco.setUser(System.getenv("RICO_BANCO_TESTE_USUARIO"));
       this.banco.setPassword(System.getenv("RICO_BANCO_TESTE_SENHA"));
       this.sql = new SqlContado(this.banco);
-      this.api = AplicacaoRica.rotas(this.sql.banco());
+      this.api = new RotasDaAplicacaoRica(this.sql.banco()).rotas();
       String email = "endereco-" + UUID.randomUUID() + "@example.com";
       try {
         var entrada = JSON.createObjectNode().put("nome", "Cliente endereço").put("cpf", cpf)

@@ -33,6 +33,7 @@ class CadastroFaturaPostgresTest {
       var pedido = cenario.pedido().put("formaPagamento", pagamento.name());
       pedido.set("desconto", desconto("PERCENTUAL", "12.3456"));
       JsonNode resposta = cenario.cadastrar(pedido, 201);
+      assertEquals(1, cenario.sql.conexoes(), "O cadastro inteiro deve compartilhar uma conexão.");
       assertEquals(5, cenario.sql.comandos(), "As referências, escrita e retorno não fazem uma consulta por item.");
       assertEquals(cenario.cliente, resposta.path("codigoCliente").asLong());
       assertEquals(pagamento.name(), resposta.path("formaPagamento").asString());

@@ -56,9 +56,9 @@ public final class TkCadastroCliente implements TkRegex {
     ContatoCliente contato;
     Optional<Endereco> endereco;
     try {
-      identificacao = new IdentificacaoCliente(new NomeCliente(entrada.nome()), new Cpf(entrada.cpf()));
-      contato = new ContatoCliente(new Email(entrada.email()), new TelefoneOpcional(entrada.telefone()).valor());
-      endereco = Optional.ofNullable(entrada.endereco()).map(EnderecoJson::endereco);
+      identificacao = entrada.identificacao();
+      contato = entrada.contato();
+      endereco = entrada.enderecoOpcional();
     } catch (IllegalArgumentException falha) {
       return this.respostas.dadosInvalidos(falha.getMessage(), caminho);
     }
@@ -70,6 +70,18 @@ public final class TkCadastroCliente implements TkRegex {
   }
 
   private record Cadastro(String nome, String cpf, String email, String telefone, EnderecoJson endereco) {
+
+    IdentificacaoCliente identificacao() {
+      return new IdentificacaoCliente(new NomeCliente(this.nome), new Cpf(this.cpf));
+    }
+
+    ContatoCliente contato() {
+      return new ContatoCliente(new Email(this.email), new TelefoneOpcional(this.telefone).valor());
+    }
+
+    Optional<Endereco> enderecoOpcional() {
+      return Optional.ofNullable(this.endereco).map(EnderecoJson::endereco);
+    }
   }
 
 }

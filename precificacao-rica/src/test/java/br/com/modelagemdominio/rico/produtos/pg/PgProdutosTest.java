@@ -78,17 +78,10 @@ class PgProdutosTest {
   }
 
   @Test
-  void consultaProdutoPelaInterfaceDaColecao() throws Exception {
+  void mesmoObjetoObservaMudancaNoRegistroQueRepresenta() throws Exception {
     Produtos produtos = new PgProdutos(this.banco);
-
     Produto produto = produtos.produto(this.codigo);
-
-    assertEquals(this.codigo, produto.codigo());
     assertEquals("Produto de consulta", produto.nome());
-  }
-
-  @Test
-  void consultaNomeComAcentosEApostrofo() throws Exception {
     try (Connection conexao = this.banco.getConnection();
       PreparedStatement atualizacao = conexao.prepareStatement(
         "UPDATE public.produto SET nome = ? WHERE codigo = ?"
@@ -98,24 +91,8 @@ class PgProdutosTest {
       atualizacao.executeUpdate();
     }
 
-    assertEquals("Café d'origem", new PgProdutos(this.banco).produto(this.codigo).nome());
-  }
-
-  @Test
-  void mesmoObjetoObservaMudancaNoRegistroQueRepresenta() throws Exception {
-    Produto produto = new PgProdutos(this.banco).produto(this.codigo);
-    assertEquals("Produto de consulta", produto.nome());
-    try (Connection conexao = this.banco.getConnection();
-      PreparedStatement atualizacao = conexao.prepareStatement(
-        "UPDATE public.produto SET nome = ? WHERE codigo = ?"
-      )) {
-      atualizacao.setString(1, "Produto atualizado");
-      atualizacao.setLong(2, this.codigo);
-      atualizacao.executeUpdate();
-    }
-
     assertEquals(this.codigo, produto.codigo());
-    assertEquals("Produto atualizado", produto.nome());
+    assertEquals("Café d'origem", produto.nome());
   }
 
   @Test

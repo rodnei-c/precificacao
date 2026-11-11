@@ -110,3 +110,38 @@ Os processos e o servidor PostgreSQL descartáveis foram encerrados após a vali
 A validação cobre os cenários descritos e os testes executados. Ela não demonstra ausência de falhas para todas as entradas possíveis, nem mede desempenho, esforço de manutenção ou superioridade de uma arquitetura. A importação visual no aplicativo Postman não foi realizada.
 
 A regra atual de desconto percentual foi preservada. A exigência de subtotal mínimo de R$ 200,00 e sua avaliação no TCC continuam como trabalho posterior, com autorização própria.
+
+<a id="validacao-final-modelagem"></a>
+
+## Validação final da revisão de modelagem
+
+A etapa 34 encerrou a revisão do rico em 10 de novembro de 2026. A execução usou JDK 24.0.2, Maven 3.9.9, PostgreSQL 15.1 descartável e Node.js 20.17.0. A suíte integrada usou um banco exclusivo. A comparação HTTP usou outra instância descartável com um banco para cada API.
+
+| Modo do módulo rico | Casos | Suítes | Falhas / erros / ignorados |
+| --- | ---: | ---: | --- |
+| Sem PostgreSQL | 369 | 38 | 0 / 0 / 0 |
+| Completo, com PostgreSQL | 491 | 53 | 0 / 0 / 0 |
+
+A suíte completa inclui os casos sem banco. As verificações de método HTTP e cabeçalho `Allow` ficaram concentradas em `RotasDaAplicacaoRicaTest`, incluindo o GET rejeitado na rota literal da simulação. Os testes de regras verificam limites, precisão, desconto e mensagens. Os testes com banco verificam gravação parcial, rollback, concorrência, consistência das leituras e inicialização.
+
+O [executor local](../verificacao/README.md) executou os scripts da [coleção Postman](postman/precificacao-rica.postman_collection.json) por HTTP, com duas rodadas para cada módulo. Foram **300 requisições, 432 verificações da coleção e 150 pares de respostas comparados**. Os corpos de sucesso coincidiram segundo os critérios descritos acima. Os cinco cenários de erro já registrados repetiram as diferenças de redação nas duas rodadas, com os mesmos status. O executor usou conexões HTTP sem reaproveitamento no Node.js 20.
+
+### Exemplos de código para o estudo
+
+| Ponto de comparação | Onde observar no código |
+| --- | --- |
+| Estrutura do anêmico | Os pacotes `controllers`, `services`, `repositories` e `models` separam as responsabilidades. [Módulo anêmico](../precificacao-anemica/src/main/java/br/com/precificacao/anemico) |
+| Estrutura do rico | Os pacotes agrupam conceitos como produtos e faturas. Os subpacotes `http` e `pg` adaptam requisições e persistência. [Montagem das rotas](../precificacao-rica/src/main/java/br/com/modelagemdominio/rico/RotasDaAplicacaoRica.java#L54) |
+| Precificação anêmica | `precificar(Produto)` lê os dados, escolhe a fórmula e grava o resultado no objeto pelos setters após a validação. [PrecificacaoServiceImpl](../precificacao-anemica/src/main/java/br/com/precificacao/anemico/services/impl/PrecificacaoServiceImpl.java#L29) |
+| Strategy no rico | `Precificacoes` recebe `RegraDePrecificacao`. A modalidade seleciona `AcrescimoSobreCusto` ou `MargemSobreVenda`. [Seleção da estratégia](../precificacao-rica/src/main/java/br/com/modelagemdominio/rico/produtos/precificacao/ValoresParaPrecificar.java#L28) |
+| Decorator no rico | `ProdutoConstante` mantém nome, categoria e valores da leitura, com identidade delegada. `DescontoReconstituido` delega cálculo, validação e registro ao desconto composto. [ProdutoConstante](../precificacao-rica/src/main/java/br/com/modelagemdominio/rico/produtos/ProdutoConstante.java), [DescontoReconstituido](../precificacao-rica/src/main/java/br/com/modelagemdominio/rico/faturas/descontos/DescontoReconstituido.java) |
+| Specification no rico | `Precificacao` compõe a restrição de venda inferior ao custo com a exigência de venda superior para percentual positivo. [Composição das regras](../precificacao-rica/src/main/java/br/com/modelagemdominio/rico/produtos/Precificacao.java#L21) |
+| Estado materializado e I/O | `CalculoFatura` valida e copia os itens durante a construção. A leitura dos preços ocorre ao calcular. [CalculoFatura](../precificacao-rica/src/main/java/br/com/modelagemdominio/rico/faturas/CalculoFatura.java) |
+
+O inventário das classes do JAR encontrou apenas `AplicacaoRica.main` como método estático próprio. A verificação excluiu membros gerados pelo compilador. Os tipos com mais de quatro atributos são `TkCadastroProduto.Cadastro` (6), `TkCadastroCliente.Cadastro` (5) e `EnderecoJson` (6). São representações planas de entrada para o Jackson. Seus métodos compõem os valores e as operações de domínio.
+
+### Evidências e alcance
+
+- [Resumo da etapa 34](evidencias/modelagem-etapa34-2026-11-10.json), com as contagens, as execuções e os hashes SHA-256.
+- Relatórios locais em `precificacao-rica/target/surefire-integracao/20261111-012930803` e `precificacao-rica/target/comparacao-modelagem-etapa-34.json`.
+- O alcance da validação se restringe às regras e aos fluxos executados. As diferenças de organização podem orientar a análise de manutenibilidade do TCC. Medidas de esforço de manutenção e de desempenho exigem avaliação própria.

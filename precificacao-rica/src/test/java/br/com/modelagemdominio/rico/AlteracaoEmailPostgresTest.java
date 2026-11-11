@@ -31,7 +31,7 @@ class AlteracaoEmailPostgresTest {
   void alteraSomenteEmailPreservandoCadastroERecusandoConflito() throws Exception {
     var banco = bancoDeTeste();
     var sql = new SqlContado(banco);
-    Take api = AplicacaoRica.rotas(sql.banco());
+    Take api = new RotasDaAplicacaoRica(sql.banco()).rotas();
     String sufixo = UUID.randomUUID().toString().replace("-", "");
     String nomeCidade = "Cidade do e-mail " + sufixo;
     String email = "anterior-" + sufixo + "@example.com";
@@ -101,7 +101,7 @@ class AlteracaoEmailPostgresTest {
   void falhaDeOutraUnicidadeRetorna503EPreservaEmailAnterior() throws Exception {
     var banco = bancoDeTeste();
     var sql = new SqlContado(banco);
-    Take api = AplicacaoRica.rotas(sql.banco());
+    Take api = new RotasDaAplicacaoRica(sql.banco()).rotas();
     String sufixo = UUID.randomUUID().toString().replace("-", "");
     String email = "original-" + sufixo + "@example.com";
     String novoEmail = "novo-" + sufixo + "@example.com";
@@ -146,7 +146,7 @@ class AlteracaoEmailPostgresTest {
   void desfazEmailSeARespostaFalharDepoisDaAtualizacao() throws Exception {
     var banco = bancoDeTeste();
     var sql = new SqlContado(banco);
-    Take api = AplicacaoRica.rotas(sql.banco());
+    Take api = new RotasDaAplicacaoRica(sql.banco()).rotas();
     String sufixo = UUID.randomUUID().toString().replace("-", "");
     String email = "anterior-" + sufixo + "@example.com";
     String novoEmail = "novo-" + sufixo + "@example.com";

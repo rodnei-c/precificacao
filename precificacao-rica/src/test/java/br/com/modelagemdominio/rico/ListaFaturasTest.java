@@ -19,7 +19,7 @@ class ListaFaturasTest {
     "codigoCliente=1.5", "codigoCliente=abc", "codigoCliente=9223372036854775808",
     "fim=2026-11-01T00%3A00%3A00", "inicio=2026-13-01", "codigoCliente=1%20OR%201%3D1"})
   void rejeitaFiltrosInvalidosAntesDeAcessarOBanco(String consulta) throws Exception {
-    var resposta = new RsPrint(AplicacaoRica.rotas(new DataSourceSemConexao())
+    var resposta = new RsPrint(new RotasDaAplicacaoRica(new DataSourceSemConexao()).rotas()
       .act(new RqFake("GET", "/api/faturas?" + consulta)));
 
     assertEquals("400", resposta.head().iterator().next().split(" ", 3)[1]);
@@ -33,7 +33,7 @@ class ListaFaturasTest {
     var banco = new HikariDataSource();
     banco.close();
 
-    var resposta = new RsPrint(AplicacaoRica.rotas(banco).act(new RqFake("GET", "/api/faturas")));
+    var resposta = new RsPrint(new RotasDaAplicacaoRica(banco).rotas().act(new RqFake("GET", "/api/faturas")));
 
     assertEquals("503", resposta.head().iterator().next().split(" ", 3)[1]);
     assertEquals("Não foi possível concluir a operação no banco de dados.",

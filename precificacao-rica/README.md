@@ -523,7 +523,45 @@ Na etapa 13 da revisão de modelagem, passaram **317 casos sem banco em 30 suít
 
 Na etapa 14 da revisão de modelagem, passaram **317 casos sem banco em 30 suítes** e **438 completos em 45 suítes**, sem falhas, erros ou ignorados. O completo inclui os unitários. Um novo caso integrado confere os objetos devolvidos pelo cadastro, listagem e renomeação após duas alterações de nome, além de uma conexão e um comando por operação. A leitura mais recente recebe o nome atual. A suíte existente já era obrigatória. O JAR foi gerado e o PostgreSQL temporário removido. A etapa 15 aguarda aprovação.
 
-Na etapa 15 da revisão de modelagem, passaram **323 casos sem banco em 31 suítes** e **444 completos em 46 suítes**, sem falhas, erros ou ignorados. O completo inclui os unitários. Os seis casos de `FalhaNaRenomeacaoCategoriaTest` conferem a classificação precisa da duplicidade, outras falhas, metadados ausentes, causa original e logs. A suíte foi registrada como obrigatória. Os testes PostgreSQL e HTTP existentes também passaram. O JAR foi gerado e o PostgreSQL temporário removido. A etapa 16 aguarda aprovação.
+Na etapa 15 da revisão de modelagem, passaram **323 casos sem banco em 31 suítes** e **444 completos em 46 suítes**, sem falhas, erros ou ignorados. O completo inclui os unitários. Os seis casos de `FalhaNaRenomeacaoCategoriaTest` conferem a classificação precisa da duplicidade, outras falhas, metadados ausentes, causa original e logs. A suíte foi registrada como obrigatória. Os testes PostgreSQL e HTTP existentes também passaram. O JAR foi gerado e o PostgreSQL temporário removido.
+
+Na etapa 16 da revisão de modelagem, passaram **325 testes sem banco** e **446 no perfil completo**, sem falhas, erros ou casos ignorados. Os novos casos de `CidadesDaConsultaTest` conferem execução sob demanda e fechamento do cursor SQL em sucesso e falha. O JAR foi gerado e o PostgreSQL descartável foi removido.
+
+Na etapa 17 da revisão de modelagem, passaram **332 testes sem banco** e **453 no perfil completo**, sem falhas, erros ou casos ignorados. `PrecificacaoTest` e `EntidadesMaterializadasTest` verificam as regras na construção direta dos objetos.
+
+Na etapa 18 da revisão de modelagem, passaram **335 testes sem banco** e **456 no perfil completo**. Os novos casos verificam a ordem das especificações, as mensagens e o limite após arredondamento.
+
+Na etapa 19 da revisão de modelagem, passaram **335 testes sem banco** e **456 no perfil completo**. O teste HTTP do histórico compara os códigos e datas da resposta com as linhas gravadas no PostgreSQL.
+
+Na etapa 20 da revisão de modelagem, passaram **335 testes sem banco** e **456 no perfil completo**. A listagem HTTP usou uma conexão e um comando SQL. O teste integrado também verificou o preço de um produto materializado e o de um produto sob demanda após uma alteração no banco.
+
+Na etapa 21 da revisão de modelagem, passaram **335 testes sem banco** e **456 no perfil completo**. Os testes de reprecificação confirmaram a conexão compartilhada, o desfazimento das gravações em caso de falha e a concorrência.
+
+Na etapa 22 da revisão de modelagem, passaram **341 testes sem banco** e **462 no perfil completo**. `FalhaNaGravacaoProdutoTest` verifica a classificação de categoria ausente, a preservação da causa e o conteúdo do log de persistência.
+
+Na etapa 23 da revisão de modelagem, passaram **341 testes sem banco** e **462 no perfil completo**. O teste de consulta lê telefone e endereço após o fechamento do cursor e verifica uma conexão e um comando.
+
+Na etapa 24 da revisão de modelagem, passaram **341 testes sem banco** e **462 no perfil completo**. A integração conferiu a conexão compartilhada na atualização de endereço, a escrita dos campos solicitados, o desfazimento e as alterações concorrentes.
+
+Na etapa 25 da revisão de modelagem, passaram **345 testes sem banco** e **466 no perfil completo**. Os novos casos verificam a classificação da falha e a preservação da causa quando o rollback também falha.
+
+Na etapa 26 da revisão de modelagem, passaram **345 testes sem banco** e **466 no perfil completo**. A integração verificou uma conexão para o cadastro de fatura, incluindo itens e retorno, e o desfazimento após falha no segundo item ou na materialização.
+
+Na etapa 27 da revisão de modelagem, passaram **353 testes sem banco** e **474 no perfil completo**. Os novos casos verificam as restrições na cadeia de exceções de gravação, a tradução de falhas de leitura e a preservação da exceção original quando o rollback também falha.
+
+Na etapa 28 da revisão de modelagem, passaram **353 testes sem banco** e **474 no perfil completo**. As listagens de cidades, produtos e faturas usam o mesmo leitor de parâmetros UTF-8. Os testes verificam filtros combinados, espaços e a prioridade da primeira ocorrência de um parâmetro repetido.
+
+Na etapa 29 da revisão de modelagem, passaram **355 testes sem banco** e **476 no perfil completo**. Os testes de categoria e PATCH de cliente verificam entradas inválidas, omissão, remoção e substituição. Os novos casos conferem e-mail em branco e a precedência do erro de formato.
+
+Na etapa 30 da revisão de modelagem, passaram **355 testes sem banco** e **476 no perfil completo**. Cadastro e simulação compartilham a leitura do pedido e a conversão exata dos códigos. Os testes verificam as mensagens para códigos inválidos nas duas rotas e o intervalo inclusivo da listagem.
+
+Na etapa 31 da revisão de modelagem, passaram **355 testes sem banco** e **476 no perfil completo**. As respostas de produto, cliente e fatura passaram a compor grupos de dados mantendo o formato público. O executor da coleção Postman conferiu **150 pares de respostas HTTP** dos dois módulos.
+
+Na etapa 32 da revisão de modelagem, passaram **357 testes sem banco** e **479 no perfil completo**. A configuração do PostgreSQL passou a ser composta antes da abertura de conexões. Os testes conferem a opção de criação, a preservação da causa quando o banco recusa conexões e os cenários de inicialização e migração.
+
+Na etapa 33 da revisão de modelagem, passaram **370 testes sem banco** e **492 no perfil completo**. A montagem das rotas passou a um objeto compartilhado pela aplicação e pelos testes. Os 13 novos casos verificam o retorno 405 e os métodos permitidos antes de abrir conexão.
+
+A etapa 34 encerrou a revisão de modelagem com **369 testes sem banco** e **491 no perfil completo**, sem falhas, erros ou casos ignorados. A coleção confirmou 150 pares de respostas HTTP comparadas. O [registro final](../documentacao/Validacao-Equivalencia-Modelos.md#validacao-final-modelagem) apresenta as evidências e os exemplos de código.
 
 ## Coleção Postman e equivalência
 

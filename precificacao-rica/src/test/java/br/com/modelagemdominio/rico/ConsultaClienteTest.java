@@ -34,7 +34,7 @@ class ConsultaClienteTest {
   @ParameterizedTest
   @ValueSource(strings = {"0", "-1", "abc", "1.5", "9223372036854775808"})
   void rejeitaCodigoInvalidoAntesDeAcessarOBanco(String codigo) throws Exception {
-    Take api = AplicacaoRica.rotas(new DataSourceSemConexao());
+    Take api = new RotasDaAplicacaoRica(new DataSourceSemConexao()).rotas();
 
     JsonNode problema = this.problema(api, codigo, 400);
 
@@ -46,7 +46,7 @@ class ConsultaClienteTest {
     var banco = new HikariDataSource();
     banco.close();
 
-    JsonNode problema = this.problema(AplicacaoRica.rotas(banco), "1", 503);
+    JsonNode problema = this.problema(new RotasDaAplicacaoRica(banco).rotas(), "1", 503);
 
     assertEquals("Persistência indisponível", problema.path("title").asString());
   }
@@ -56,7 +56,7 @@ class ConsultaClienteTest {
   void consultaPorCodigoComESemEnderecoERefleteAlteracoesDoBanco() throws Exception {
     var banco = bancoDeTeste();
     var sql = new SqlContado(banco);
-    Take api = AplicacaoRica.rotas(sql.banco());
+    Take api = new RotasDaAplicacaoRica(sql.banco()).rotas();
     String sufixo = UUID.randomUUID().toString();
     String nomeCidade = "Cidade para consulta " + sufixo;
     String emailCompleto = "Completo-" + sufixo + "@example.com";
@@ -80,7 +80,19 @@ class ConsultaClienteTest {
       assertEquals(completo, this.consultarEmUmaConsulta(api, sql, caminhoCompleto, 200));
       assertEquals(simples, this.consultarEmUmaConsulta(api, sql, caminhoSimples, 200));
 
-      Cliente leituraAnterior = new PgClientes(banco, new PgCidades(banco)).cliente(codigoSimples);
+      sql.zerar();
+      var clientes = new PgClientes(sql.banco(), new PgCidades(sql.banco()));
+      Cliente materializado = clientes.cliente(codigoCompleto);
+      var endereco = materializado.endereco().orElseThrow();
+      assertEquals("80000000", endereco.cep().valor());
+      assertEquals("Rua A", endereco.localizacao().logradouro());
+      assertEquals("Apto 12", endereco.localizacao().complemento().orElseThrow());
+      assertEquals(cidade.codigo(), endereco.codigoCidade().valor());
+      assertEquals("(41) 99999-0000", materializado.contato().telefone().orElseThrow().valor());
+      assertEquals(1, sql.conexoes());
+      assertEquals(1, sql.comandos());
+
+      Cliente leituraAnterior = clientes.cliente(codigoSimples);
       String telefone = "(41) 3333-4444";
       try (var conexao = banco.getConnection();
         var atualizacao = conexao.prepareStatement("UPDATE public.cliente SET email = ?, telefone = ? WHERE codigo = ?")) {
@@ -128,7 +140,7 @@ class ConsultaClienteTest {
   void registroInvalidoRetorna503SemAlterarDadosPersistidos() throws Exception {
     var banco = bancoDeTeste();
     var sql = new SqlContado(banco);
-    Take api = AplicacaoRica.rotas(sql.banco());
+    Take api = new RotasDaAplicacaoRica(sql.banco()).rotas();
     String email = "registro-invalido-" + UUID.randomUUID() + "@example.com";
     String telefoneInvalido = "telefone inválido";
     try {

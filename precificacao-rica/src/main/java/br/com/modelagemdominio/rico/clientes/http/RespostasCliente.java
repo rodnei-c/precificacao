@@ -1,10 +1,14 @@
 package br.com.modelagemdominio.rico.clientes.http;
 
 import br.com.modelagemdominio.rico.clientes.Cliente;
+import br.com.modelagemdominio.rico.clientes.ContatoCliente;
 import br.com.modelagemdominio.rico.clientes.Endereco;
 import br.com.modelagemdominio.rico.clientes.FalhaCliente;
+import br.com.modelagemdominio.rico.clientes.IdentificacaoCliente;
+import br.com.modelagemdominio.rico.clientes.LocalizacaoEndereco;
 import br.com.modelagemdominio.rico.clientes.Telefone;
 import br.com.modelagemdominio.rico.http.ProblemasHttp;
+import com.fasterxml.jackson.annotation.JsonUnwrapped;
 import java.util.List;
 import org.takes.Response;
 import org.takes.rs.RsWithBody;
@@ -68,24 +72,46 @@ final class RespostasCliente {
     }
 
     private record ClienteResposta(
-        long codigo, String nome, String cpf, String email, String telefone, EnderecoResposta endereco
+        long codigo, @JsonUnwrapped IdentificacaoResposta identificacao, @JsonUnwrapped ContatoResposta contato,
+        EnderecoResposta endereco
     ) {
 
         ClienteResposta(Cliente cliente) {
-            this(cliente.codigo(), cliente.identificacao().nome().valor(), cliente.identificacao().cpf().valor(),
-                cliente.contato().email().valor(), cliente.contato().telefone().map(Telefone::valor).orElse(null),
+            this(cliente.codigo(), new IdentificacaoResposta(cliente.identificacao()),
+                new ContatoResposta(cliente.contato()),
                 cliente.endereco().map(EnderecoResposta::new).orElse(null));
         }
     }
 
+    private record IdentificacaoResposta(String nome, String cpf) {
+
+        IdentificacaoResposta(IdentificacaoCliente identificacao) {
+            this(identificacao.nome().valor(), identificacao.cpf().valor());
+        }
+    }
+
+    private record ContatoResposta(String email, String telefone) {
+
+        ContatoResposta(ContatoCliente contato) {
+            this(contato.email().valor(), contato.telefone().map(Telefone::valor).orElse(null));
+        }
+    }
+
     private record EnderecoResposta(
-        String cep, String logradouro, String numero, String bairro, String complemento, long codigoCidade
+        String cep, @JsonUnwrapped LocalizacaoResposta localizacao, long codigoCidade
     ) {
 
         EnderecoResposta(Endereco endereco) {
-            this(endereco.cep().valor(), endereco.localizacao().logradouro(), endereco.localizacao().numero(),
-                endereco.localizacao().bairro(), endereco.localizacao().complemento().orElse(null),
+            this(endereco.cep().valor(), new LocalizacaoResposta(endereco.localizacao()),
                 endereco.codigoCidade().valor());
+        }
+    }
+
+    private record LocalizacaoResposta(String logradouro, String numero, String bairro, String complemento) {
+
+        LocalizacaoResposta(LocalizacaoEndereco localizacao) {
+            this(localizacao.logradouro(), localizacao.numero(), localizacao.bairro(),
+                localizacao.complemento().orElse(null));
         }
     }
 }

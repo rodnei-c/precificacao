@@ -20,6 +20,7 @@ import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.api.io.TempDir;
+import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -197,10 +198,7 @@ class ApiProdutosTest {
             long codigoPrimeira = registros.get(1).path("codigo").asLong();
             long codigoSegunda = registros.get(0).path("codigo").asLong();
             assertTrue(codigoPrimeira > 0 && codigoSegunda > codigoPrimeira);
-            for (var registro : registros) {
-                String data = registro.path("dataAlteracao").asString();
-                assertEquals(0, LocalDateTime.parse(data).getNano() % 1000);
-            }
+            conferirIdentidadeEDatasGravadas(codigo, registros);
             assertEquals(json.readTree("""
                 [
                     {
@@ -241,6 +239,26 @@ class ApiProdutosTest {
             .header("Content-Type", "application/json")
             .method(metodo, HttpRequest.BodyPublishers.ofString(corpo))
             .build(), HttpResponse.BodyHandlers.ofString());
+    }
+
+    private static void conferirIdentidadeEDatasGravadas(long codigo, JsonNode registros) throws SQLException {
+        try (Connection conexao = conectar();
+             var consulta = conexao.prepareStatement("""
+                 SELECT codigo, data_alteracao
+                 FROM public.historico_precificacao WHERE produto_codigo = ?
+                 ORDER BY codigo DESC
+                 """)) {
+            consulta.setLong(1, codigo);
+            try (var resultado = consulta.executeQuery()) {
+                for (var registro : registros) {
+                    assertTrue(resultado.next());
+                    assertEquals(resultado.getLong("codigo"), registro.path("codigo").asLong());
+                    assertEquals(resultado.getObject("data_alteracao", LocalDateTime.class),
+                        LocalDateTime.parse(registro.path("dataAlteracao").asString()));
+                }
+                assertFalse(resultado.next());
+            }
+        }
     }
 
     private static void conferirHistorico(long codigo) throws SQLException {

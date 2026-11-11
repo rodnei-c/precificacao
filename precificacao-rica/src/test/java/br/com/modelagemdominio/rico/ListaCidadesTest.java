@@ -75,7 +75,7 @@ class ListaCidadesTest {
     String inicioSegundoNome = "Água Branca " + sufixo + " XY";
     String segundoNome = inicioSegundoNome + "x".repeat(200 - inicioSegundoNome.length());
     var sql = new SqlContado(banco);
-    Take api = AplicacaoRica.rotas(sql.banco());
+    Take api = new RotasDaAplicacaoRica(sql.banco()).rotas();
     assertEquals(0, sql.conexoes());
     assertEquals(0, sql.comandos());
 
@@ -128,7 +128,7 @@ class ListaCidadesTest {
   void combinaNomeEUfMantendoOsCodigosECamposDasCidades() throws Exception {
     var banco = bancoDeTeste();
     var sql = new SqlContado(banco);
-    Take api = AplicacaoRica.rotas(sql.banco());
+    Take api = new RotasDaAplicacaoRica(sql.banco()).rotas();
     UUID sufixo = UUID.randomUUID();
     String nomeComum = "São Tomé " + sufixo;
     String outroNome = "Outra cidade " + sufixo;
@@ -159,6 +159,7 @@ class ListaCidadesTest {
       assertEquals(esperadasNaParaiba, this.consultarEmUmaConsulta(api, sql, "?nome=++&uf=pb"));
       assertEquals(mesmoNome, this.consultarEmUmaConsulta(api, sql, "?uf=++&nome=" + nomeCodificado));
       assertEquals(semFiltro, this.consultarEmUmaConsulta(api, sql, "?uf="));
+      assertEquals(mesmoNome, this.consultarEmUmaConsulta(api, sql, "?uf=++&uf=PB&nome=" + nomeCodificado));
     } finally {
       try (var conexao = banco.getConnection();
         var exclusao = conexao.prepareStatement("DELETE FROM public.cidade WHERE nome IN (?, ?)")) {
@@ -226,7 +227,7 @@ class ListaCidadesTest {
     var banco = new HikariDataSource();
     banco.close();
 
-    JsonNode problema = this.corpo(503, consultarPorNome(AplicacaoRica.rotas(banco), "Curitiba"));
+    JsonNode problema = this.corpo(503, consultarPorNome(new RotasDaAplicacaoRica(banco).rotas(), "Curitiba"));
 
     assertEquals("Persistência indisponível", problema.path("title").asString());
     assertEquals("/api/cidades", problema.path("instance").asString());
@@ -234,7 +235,7 @@ class ListaCidadesTest {
 
   @Test
   void recusaFiltroAcimaDoLimiteAntesDeAcessarOBanco() throws Exception {
-    Take api = AplicacaoRica.rotas(new DataSourceSemConexao());
+    Take api = new RotasDaAplicacaoRica(new DataSourceSemConexao()).rotas();
 
     var problema = this.corpo(400, consultarPorNome(api, "x".repeat(201)));
 
@@ -243,7 +244,7 @@ class ListaCidadesTest {
 
   @Test
   void recusaCaractereNuloNoFiltroAntesDeAcessarOBanco() throws Exception {
-    Take api = AplicacaoRica.rotas(new DataSourceSemConexao());
+    Take api = new RotasDaAplicacaoRica(new DataSourceSemConexao()).rotas();
 
     var problema = this.corpo(400, consultarPorNome(api, "Cidade\0inválida"));
 
@@ -253,7 +254,7 @@ class ListaCidadesTest {
   @ParameterizedTest
   @ValueSource(strings = {"?uf=XX", "?nome=Curitiba&uf=XX"})
   void recusaUfInvalidaAntesDeAcessarOBanco(String consulta) throws Exception {
-    Take api = AplicacaoRica.rotas(new DataSourceSemConexao());
+    Take api = new RotasDaAplicacaoRica(new DataSourceSemConexao()).rotas();
 
     var problema = this.corpo(400, consultar(api, consulta));
 

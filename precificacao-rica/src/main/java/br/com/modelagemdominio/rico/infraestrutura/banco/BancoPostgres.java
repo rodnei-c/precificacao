@@ -12,28 +12,25 @@ public final class BancoPostgres {
 
   private static final Logger LOG = Logger.getLogger(BancoPostgres.class.getName());
 
-  private final ConexoesPostgres conexoes;
-  private final EnderecoPostgres endereco;
-  private final boolean criarSeAusente;
+  private final ConfiguracaoPostgres configuracao;
+  private final CriacaoBancoPostgres criacao;
 
   /** @param ambiente variáveis de configuração da aplicação, incluindo DB_PASSWORD */
   public BancoPostgres(Map<String, String> ambiente) {
-    this(
-      ambiente.getOrDefault("RICO_DB_URL", "jdbc:postgresql://localhost:5432/precificacao_rica"),
-      ambiente.getOrDefault("RICO_DB_USER", "postgres"), ambiente.get("DB_PASSWORD"),
-      opcaoCriacao(ambiente.getOrDefault("RICO_DB_CRIAR_SE_AUSENTE", "true")),
-      ambiente.getOrDefault("RICO_DB_MANUTENCAO", "postgres")
-    );
+    this(new ConfiguracaoPostgres(ambiente));
   }
 
   BancoPostgres(String url, String usuario, String senha, boolean criarSeAusente, String manutencao) {
-    this(new ConexoesPostgres(usuario, senha), EnderecoPostgres.daUrl(url, manutencao), criarSeAusente);
+    this(new ConfiguracaoPostgres(url, usuario, senha, criarSeAusente, manutencao));
   }
 
-  private BancoPostgres(ConexoesPostgres conexoes, EnderecoPostgres endereco, boolean criarSeAusente) {
-    this.conexoes = conexoes;
-    this.endereco = endereco;
-    this.criarSeAusente = criarSeAusente;
+  private BancoPostgres(ConfiguracaoPostgres configuracao) {
+    this(configuracao, new CriacaoBancoPostgres(configuracao.conexoes(), configuracao.endereco()));
+  }
+
+  private BancoPostgres(ConfiguracaoPostgres configuracao, CriacaoBancoPostgres criacao) {
+    this.configuracao = configuracao;
+    this.criacao = criacao;
   }
 
   /**
@@ -42,16 +39,10 @@ public final class BancoPostgres {
    */
   public HikariDataSource preparar() {
     try {
-      if (this.criarSeAusente) {
-        new CriacaoBancoPostgres(this.conexoes, this.endereco).garantirExistencia();
-      } else {
-        try (var conexao = this.conexoes.abrir(this.endereco.url())) {
-          // Verifica o banco sem tentar criá-lo.
-        }
-      }
+      this.criacao.garantirExistencia(this.configuracao.criarSeAusente());
     } catch (SQLException falha) {
       String mensagem = switch (String.valueOf(falha.getSQLState())) {
-        case "3D000" -> this.criarSeAusente
+        case "3D000" -> this.configuracao.criarSeAusente()
           ? "O banco de manutenção não existe. Confira RICO_DB_MANUTENCAO."
           : "O banco não existe e a criação automática está desativada em RICO_DB_CRIAR_SE_AUSENTE.";
         case "42501" -> "Não foi possível preparar o banco. Para criar um banco ausente, o usuário precisa de CREATEDB.";
@@ -61,7 +52,7 @@ public final class BancoPostgres {
       LOG.severe("Falha na preparação do banco (SQLState: " + falha.getSQLState() + "). " + mensagem);
       throw new FalhaInicializacaoBanco(mensagem, falha);
     }
-    HikariDataSource banco = this.conexoes.agrupar(this.endereco.url());
+    HikariDataSource banco = this.configuracao.conexoes().agrupar(this.configuracao.endereco().url());
     try {
       Flyway.configure().dataSource(banco).locations("classpath:db/migration")
         .schemas("public").cleanDisabled(true).load().migrate();
@@ -74,12 +65,5 @@ public final class BancoPostgres {
       banco.close();
       throw falha;
     }
-  }
-
-  private static boolean opcaoCriacao(String valor) {
-    if (valor != null && ("true".equalsIgnoreCase(valor.strip()) || "false".equalsIgnoreCase(valor.strip()))) {
-      return Boolean.parseBoolean(valor.strip());
-    }
-    throw new FalhaInicializacaoBanco("Defina RICO_DB_CRIAR_SE_AUSENTE como true ou false.");
   }
 }

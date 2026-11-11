@@ -31,7 +31,11 @@ final class CategoriaDaLinha {
   }
 
   /** @return categoria composta com os valores da leitura */
-  Categoria categoria() {
-    return new CategoriaConstante(this.codigo, this.nome);
+  Categoria categoria() throws SQLException {
+    try {
+      return new CategoriaConstante(this.codigo, this.nome);
+    } catch (IllegalArgumentException falha) {
+      throw new SQLException("Categoria com identidade inválida no banco.", falha);
+    }
   }
 }

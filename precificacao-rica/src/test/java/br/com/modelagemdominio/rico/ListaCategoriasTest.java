@@ -78,7 +78,7 @@ class ListaCategoriasTest {
                 inserir(conexao, segundoCodigo, segundoNome);
                 inserir(conexao, primeiroCodigo, primeiroNome);
 
-                RsPrint resposta = consultar(AplicacaoRica.rotas(banco));
+                RsPrint resposta = consultar(new RotasDaAplicacaoRica(banco).rotas());
 
                 assertResposta(200, "application/json", resposta);
                 List<JsonNode> categoriasInseridas = new ArrayList<>();
@@ -113,7 +113,7 @@ class ListaCategoriasTest {
         HikariDataSource bancoFechado = new HikariDataSource();
         bancoFechado.close();
 
-        RsPrint resposta = consultar(AplicacaoRica.rotas(bancoFechado));
+        RsPrint resposta = consultar(new RotasDaAplicacaoRica(bancoFechado).rotas());
 
         assertResposta(503, "application/problem+json", resposta);
         assertEquals(this.json.readTree("""

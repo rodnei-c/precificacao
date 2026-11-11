@@ -73,6 +73,8 @@ class CriacaoBancoPostgresTest {
       var falha = assertThrows(FalhaInicializacaoBanco.class,
         () -> new BancoPostgres(url(nome), usuario(), senha(), false, manutencao()).preparar());
       assertEquals("3D000", assertInstanceOf(SQLException.class, falha.getCause()).getSQLState());
+      assertEquals("O banco não existe e a criação automática está desativada em RICO_DB_CRIAR_SE_AUSENTE.",
+        falha.getMessage());
       assertFalse(existe(nome));
     } finally {
       remover(nome);
@@ -118,7 +120,27 @@ class CriacaoBancoPostgresTest {
       var falha = assertThrows(FalhaInicializacaoBanco.class,
         () -> new BancoPostgres(url(nome), usuario(), UUID.randomUUID().toString(), true, manutencao()).preparar());
       assertEquals("28P01", assertInstanceOf(SQLException.class, falha.getCause()).getSQLState());
+      assertEquals("Não foi possível autenticar no PostgreSQL. Confira o usuário e DB_PASSWORD.", falha.getMessage());
       assertFalse(existe(nome));
+    } finally {
+      remover(nome);
+    }
+  }
+
+  @Test
+  void bancoQueRecusaConexoesConservaFalhaOriginal() throws Exception {
+    String nome = nomeTemporario();
+    try {
+      try (var admin = admin(); var comando = admin.createStatement()) {
+        comando.executeUpdate("CREATE DATABASE " + identificador(nome) + " WITH ALLOW_CONNECTIONS false");
+      }
+
+      var falha = assertThrows(FalhaInicializacaoBanco.class,
+        () -> new BancoPostgres(url(nome), usuario(), senha(), true, "manutencao_inexistente").preparar());
+
+      assertEquals("55000", assertInstanceOf(SQLException.class, falha.getCause()).getSQLState());
+      assertEquals("Não foi possível acessar o PostgreSQL. Confira a conexão e o banco de manutenção.",
+        falha.getMessage());
     } finally {
       remover(nome);
     }

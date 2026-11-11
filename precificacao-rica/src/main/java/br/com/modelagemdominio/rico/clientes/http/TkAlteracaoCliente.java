@@ -12,7 +12,6 @@ import br.com.modelagemdominio.rico.clientes.FalhaCliente;
 import br.com.modelagemdominio.rico.clientes.Telefone;
 import br.com.modelagemdominio.rico.http.CorpoJson;
 import java.io.IOException;
-import java.util.Optional;
 import java.util.Set;
 import org.takes.Response;
 import org.takes.facets.fork.RqRegex;
@@ -65,14 +64,15 @@ public final class TkAlteracaoCliente implements TkRegex {
     if (alteracao == null || !alteracao.isObject()) {
       return this.respostas.formatoInvalido(caminho);
     }
-    JsonNode email = alteracao.path("email");
-    JsonNode telefone = alteracao.path("telefone");
-    if (!CAMPOS.containsAll(alteracao.propertyNames()) || !campoDeTexto(email) || !campoDeTexto(telefone)) {
+    var email = new CampoDeTextoJson(alteracao.path("email"));
+    var telefone = new CampoDeTextoJson(alteracao.path("telefone"));
+    if (!CAMPOS.containsAll(alteracao.propertyNames()) || !email.formatoAceito() || !telefone.formatoAceito()) {
       return this.respostas.formatoInvalido(caminho);
     }
     AlteracaoCliente valores;
     try {
-      valores = new AlteracaoCliente(alteracaoEmail(email), alteracaoTelefone(telefone),
+      valores = new AlteracaoCliente(email.alteracaoDeValorObrigatorio(Email::new),
+        telefone.alteracaoOpcional(Telefone::new),
         this.alteracaoEndereco(alteracao.path("endereco")));
     } catch (JacksonException falha) {
       return this.respostas.formatoInvalido(caminho);
@@ -86,27 +86,6 @@ public final class TkAlteracaoCliente implements TkRegex {
     }
   }
 
-  private static boolean campoDeTexto(JsonNode campo) {
-    return campo.isMissingNode() || campo.isNull() || campo.isString();
-  }
-
-  private static Optional<Email> alteracaoEmail(JsonNode email) {
-    if (email.isMissingNode()) {
-      return Optional.empty();
-    }
-    return Optional.of(new Email(email.isNull() ? null : email.asString()));
-  }
-
-  private static AlteracaoCampo<Telefone> alteracaoTelefone(JsonNode telefone) {
-    if (telefone.isMissingNode()) {
-      return new CampoPreservado<>();
-    }
-    if (telefone.isNull()) {
-      return new CampoRemovido<>();
-    }
-    return new CampoSubstituido<>(new Telefone(telefone.asString()));
-  }
-
   private AlteracaoCampo<Endereco> alteracaoEndereco(JsonNode endereco) {
     if (endereco.isMissingNode()) {
       return new CampoPreservado<>();
@@ -115,7 +94,7 @@ public final class TkAlteracaoCliente implements TkRegex {
       return new CampoRemovido<>();
     }
     if (!endereco.isObject() || !CAMPOS_ENDERECO.containsAll(endereco.propertyNames())
-      || TEXTOS_ENDERECO.stream().anyMatch(campo -> !campoDeTexto(endereco.path(campo)))
+      || TEXTOS_ENDERECO.stream().anyMatch(campo -> !new CampoDeTextoJson(endereco.path(campo)).formatoAceito())
       || !(endereco.path("codigoCidade").isMissingNode() || endereco.path("codigoCidade").isNull()
         || endereco.path("codigoCidade").isNumber())) {
       throw new IllegalArgumentException("Confira o formato do endereço.");

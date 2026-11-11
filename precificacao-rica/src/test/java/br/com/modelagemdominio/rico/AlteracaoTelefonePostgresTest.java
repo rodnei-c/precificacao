@@ -226,7 +226,7 @@ class AlteracaoTelefonePostgresTest {
     String sufixo = UUID.randomUUID().toString();
     banco.setApplicationName("teste-contatos-" + sufixo);
     var sql = new SqlContado(banco);
-    Take api = AplicacaoRica.rotas(sql.banco());
+    Take api = new RotasDaAplicacaoRica(sql.banco()).rotas();
     String nomeCidade = "Cidade dos contatos " + sufixo;
     String email = "antes-" + sufixo + "@example.com";
     try {

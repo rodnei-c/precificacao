@@ -47,7 +47,7 @@ class ReprecificacaoPostgresTest {
   ) throws Exception {
     try (var produto = this.produto(modalidade)) {
       var contagem = new SqlContado(produto.banco());
-      Take observada = AplicacaoRica.rotas(contagem.banco());
+      Take observada = new RotasDaAplicacaoRica(contagem.banco()).rotas();
       JsonNode atualizado = this.alterar(observada, produto.codigo(), entrada, 200);
       assertEquals(1, contagem.conexoes(), "Leitura, atualização e histórico devem usar a mesma conexão.");
       assertEquals(3, contagem.comandos(), "A operação deve ler, atualizar o produto e inserir o histórico.");
@@ -247,7 +247,7 @@ class ReprecificacaoPostgresTest {
     banco.setURL(System.getenv("RICO_BANCO_TESTE_URL"));
     banco.setUser(System.getenv("RICO_BANCO_TESTE_USUARIO"));
     banco.setPassword(System.getenv("RICO_BANCO_TESTE_SENHA"));
-    Take api = AplicacaoRica.rotas(banco);
+    Take api = new RotasDaAplicacaoRica(banco).rotas();
     String sufixo = UUID.randomUUID().toString();
     String nome = "Produto reprecificado " + sufixo;
     long categoria = this.corpo(201, enviar(api, "POST", "/api/categorias", "{\"nome\":\"Categoria " + sufixo + "\"}"))

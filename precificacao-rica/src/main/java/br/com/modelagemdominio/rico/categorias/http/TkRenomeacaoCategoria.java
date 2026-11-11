@@ -34,7 +34,7 @@ public final class TkRenomeacaoCategoria implements TkRegex {
     NomeCategoria nome;
     try {
       codigo = new CodigoCategoria(Long.parseLong(requisicao.matcher().group(1)));
-      nome = NomeCategoriaJson.ler(corpo);
+      nome = new NomeCategoriaJson(corpo).nome();
     } catch (JacksonException | IOException | NumberFormatException falha) {
       return this.respostas.formatoInvalido(caminho);
     } catch (IllegalArgumentException falha) {

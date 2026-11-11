@@ -1,22 +1,23 @@
 # Precificação — estado atual e plano de implementação do modelo rico
 
-Registro criado em 9 de novembro de 2026, com estado do rico conferido em 10 de novembro de 2026. Checkout atual: `C:\Java\Workspace\precificacao`. Os módulos são `precificacao-anemica` e `precificacao-rica`.
+Registro criado em 9 de novembro de 2026, com estado do rico conferido em 11 de novembro de 2026. Checkout atual em `C:\Java\workspace\modelagem-dominio`. Os módulos são `precificacao-anemica` e `precificacao-rica`.
 
-Este documento reúne as funcionalidades entregues, as correções de modelagem já aplicadas e os próximos passos do rico. Foi consolidado em 10 de novembro de 2026, após a etapa 15 da revisão de modelagem. Os registros anteriores foram mantidos para permitir a retomada sem repetir entregas.
+Este documento reúne as funcionalidades entregues, as correções de modelagem já aplicadas e os próximos passos do rico. Foi atualizado em 11 de novembro de 2026, com o registro da revisão dos testes, da análise complementar de modelagem e das orientações sobre Postman. A etapa 34 registra o fechamento da rodada anterior de modelagem. Os registros anteriores foram mantidos para permitir a retomada sem repetir entregas.
 
 **Situação atual: etapas 1 a 21 da equiparação funcional concluídas em 10 de novembro de 2026. A equivalência foi verificada nos fluxos documentados, com testes completos dos dois módulos e 150 pares de respostas HTTP comparados. A documentação e a coleção Postman do rico foram concluídas.**
 
-**Situação da modelagem:** as etapas 1 a 15 da revisão estão concluídas. O trabalho atual transforma validações, conversões, fábricas e classificações de falhas em comportamento de objetos pequenos, com estado final e dependências compostas, conforme os conceitos de Elegant Objects adotados no projeto. Ainda existem pontos a corrigir; a entrega funcional não encerra essa revisão. A etapa 16 está pendente de autorização. A proposta de desconto mínimo de R$ 200 permanece descartada.
+**Situação da modelagem:** as 34 etapas da rodada anterior estão concluídas. A análise complementar identificou diferenças em relação à aplicação estrita de Elegant Objects. O autor decidiu conservar a validação nos construtores. Os demais achados e as decisões sobre records estão na seção 14. A proposta de desconto mínimo de R$ 200 permanece descartada.
 
 ### Como localizar o estado atual
 
 | Frente | Situação | Onde consultar |
 | --- | --- | --- |
 | Equiparação funcional com o anêmico | 21 etapas concluídas: produtos, categorias, cidades, clientes, faturas, banco, testes e documentação. | Seções 1, 2 e histórico da seção 6. |
-| Revisão de modelagem do rico | 15 etapas concluídas, resumidas abaixo e detalhadas com evidências. | Seção 12. |
-| Próximas correções de modelagem | Etapas 16 a 34 propostas; nenhuma foi iniciada nesta atualização documental. | [Plano de continuidade](#proximas-etapas-modelagem). |
+| Revisão de modelagem do rico | 34 etapas concluídas, resumidas abaixo e detalhadas com evidências. | Seção 12. |
+| Evidências do encerramento | Testes, comparação HTTP e exemplos de código para o estudo. | [Validação final](Validacao-Equivalencia-Modelos.md#validacao-final-modelagem). |
+| Revisões posteriores ao encerramento | Limpeza dos testes, decisões de modelagem e uso das coleções Postman. | Seção 14. |
 
-A numeração recomeçou na revisão de modelagem. Por exemplo, a etapa funcional 16, sobre cálculo de faturas, está concluída; a etapa de modelagem 16, sobre a leitura de cidades, ainda aguarda ok. Ao retomar, informar a frente e a etapa.
+A numeração recomeçou na revisão de modelagem. A etapa funcional 16 trata do cálculo de faturas e a etapa de modelagem 16 trata da leitura de cidades.
 
 ### O que já foi corrigido na modelagem
 
@@ -39,26 +40,45 @@ Todas as entregas desta tabela estão concluídas. As classes citadas já existe
 | 13 | Materialização estática da cidade passou a composição. | `cidades.pg.ResultadoSqlDeCidade`, com três atributos finais, dois construtores e um método de comportamento. |
 | 14 | Materialização estática da categoria passou a composição. | `categorias.pg.CategoriaDaLinha`, com dois atributos finais, dois construtores e um método de comportamento. |
 | 15 | Classificação estática das falhas de renomeação passou a um objeto. | `FalhaNaRenomeacaoCategoria`; classificação específica, causa original e logs preservados. |
+| 16 | Leitura da coleção de cidades passou a um objeto. | `CidadesDaConsulta` executa a consulta preparada e materializa uma lista imutável. |
+| 17 | Invariantes passaram a ser protegidas na construção dos estados. | `Precificacao`, `ClienteConstante`, `CategoriaConstante` e `CidadeConstante` validam os valores compostos. |
+| 18 | Regras de validade dos preços passaram a ser compostas com Specification. | `VendaNaoInferiorAoCusto` e `VendaSuperiorComPercentualPositivo` produzem a primeira violação. |
+| 19 | O histórico passou a compor sua identidade e a leitura das alterações. | `AlteracaoPrecificacao` tem quatro componentes e `AlteracoesDaConsulta` materializa as linhas do histórico. |
+| 20 | A leitura da coleção de produtos passou a um objeto. | `ProdutosDaConsulta` executa o comando preparado e usa o mapeamento fornecido pela coleção. |
+| 21 | A alteração de preço passou a compor os comandos de gravação. | `AtualizacaoDaPrecificacao` e `RegistroDoHistoricoDePrecificacao` usam a conexão da transação. |
+| 22 | A validação do código e a tradução de falhas de produto passaram a objetos. | `CodigoProduto` e `FalhaNaGravacaoProduto`. |
+| 23 | A leitura do cliente passou a compor a materialização dos valores e do endereço. | `ResultadoSqlDeCliente` e `ResultadoSqlDeEndereco` usam a mesma linha JDBC. |
+| 24 | A atualização parcial passou a compor o comando e as consultas de existência. | `AtualizacaoDoCliente`, `ParametrosSqlDoEndereco`, `ExistenciaDeCidade` e `ExistenciaDeCliente`. |
+| 25 | A validação, a tradução de falhas e a reversão passaram a objetos. | `CodigoCliente`, `FalhaNaGravacaoCliente` e `ReversaoDaAlteracaoCliente`. |
+| 26 | A gravação de fatura passou a compor os comandos do cabeçalho e dos itens. | Os dois comandos usam a conexão da transação coordenada por `PgFaturas`. |
+| 27 | A tradução de falhas e o rollback de faturas passaram a objetos. | `FalhaNaLeituraDeFatura`, `FalhaNaGravacaoDeFatura` e `ReversaoDaOperacaoDeFatura` preservam a causa e distinguem referências ausentes de falhas de persistência. |
+| 28 | A interpretação dos filtros HTTP passou a objetos. | `ParametrosDaConsulta` decodifica a URL em UTF-8. Cada listagem compõe os filtros do seu domínio. |
+| 29 | A interpretação do nome de categoria e dos campos textuais do PATCH passou a objetos. | `NomeCategoriaJson` lê o nome para as duas rotas. `CampoDeTextoJson` compõe valores e alterações do cliente. |
+| 30 | O pedido de fatura passou a compor a leitura JSON, os itens e a conversão exata de códigos. | `JsonDeFatura`, `PedidoFatura` e `InteiroExato` preservam a interpretação comum de cadastro e simulação. `DataDaConsultaDeFaturas` valida as datas da listagem. |
+| 31 | As respostas HTTP passaram a compor grupos de dados do domínio. | Precificação, identificação, contato, localização, valores e vínculos são representados na borda HTTP. Os DTOs de entrada compõem os valores usados no cadastro. |
+| 32 | A interpretação da configuração do PostgreSQL passou a objetos. | `ConfiguracaoPostgres`, `OpcaoCriacaoBanco`, `UrlPostgres` e `NomeBancoPostgres` compõem a preparação do banco. |
+| 33 | A montagem da API passou a compor as rotas por recurso e por método. | `RotasDaAplicacaoRica` liga as coleções e os adaptadores. `RotaPorMetodo` conserva a resposta 405 e o cabeçalho `Allow`. |
+| 34 | Revisão encerrada com inventário, testes e comparação HTTP. | A [validação final](Validacao-Equivalencia-Modelos.md#validacao-final-modelagem) reúne resultados, exemplos e limites. |
 
-### O que estamos corrigindo agora
+### Decisões de modelagem
 
-A revisão procura localizar o comportamento no objeto que conhece a regra, reduzir a concentração de tarefas nos adaptadores e tornar explícita a composição das dependências. Já foram removidos vários auxiliares estáticos, mas permanecem consultas, conversores e classificadores com esse desenho. Também há estruturas que precisam ser revistas quanto a invariantes, coesão e exposição de dados.
+A revisão concentrou o comportamento nos objetos que conhecem as regras e tornou explícita a composição das dependências. A tabela registra as decisões verificadas no fechamento.
 
-| Tema | Estado conferido | Direção das próximas alterações |
+| Tema | Estado conferido | Decisão |
 | --- | --- | --- |
-| Objetos com comportamento | Valores como dinheiro, percentual, CPF e quantidade já validam suas entradas; cálculos e descontos têm operações próprias. | Conferir os agrupamentos e estados materializados, evitando que regras importantes dependam de o chamador montar corretamente cada campo. |
-| Estruturas que apenas expõem dados | Existem records de leitura, como `ClienteConstante`, `CategoriaConstante` e `CidadeConstante`; `Precificacao` já possui `mesmosValores()`. | Revisar a responsabilidade de cada um. Acrescentar invariantes ou comportamento onde houver uma necessidade de domínio, preservando representações imutáveis de leitura que tenham esse papel. |
-| Imutabilidade | Campos finais, records e cópias de listas já são usados, inclusive nos cálculos de fatura. | Conferir estado composto, referências nulas, cópias defensivas e retorno de uma nova leitura após gravações. Uma referência final, sozinha, não comprova a imutabilidade de tudo que ela aponta. |
-| Até quatro atributos | Os objetos introduzidos nas correções seguem o limite. `AlteracaoPrecificacao` ainda possui cinco componentes. Há DTOs HTTP também acima de quatro. | Corrigir os casos do núcleo e revisar a representação na borda, preservando o JSON existente. Agrupar conceitos reais, sem criar campos ou objetos artificiais para atender à contagem. |
-| Construtores e dependências | Os novos objetos usam construtores secundários que delegam ao primário. A composição de `PgFaturas` foi corrigida. | Revisar os demais objetos, mantendo dependências explícitas e formas úteis de construção. Evitar construtores ou métodos acrescentados apenas para satisfazer uma proporção. |
-| Métodos estáticos próprios | Permanecem em `PgCidades`, adaptadores de produtos, `PgClientes`, `PgFaturas`, conversores HTTP e preparação do banco. | Substituir por objetos com responsabilidade e dependências definidas, conforme as etapas propostas. O `main` exigido pela JVM e chamadas às bibliotecas não são fábricas de negócio a eliminar. |
-| Strategy | Existe em `RegraDePrecificacao`, `AcrescimoSobreCusto` e `MargemSobreVenda`, e nas alternativas de `Desconto`. | Preservar as fórmulas nas estratégias e revisar a montagem dessas alternativas, sem duplicar regras no HTTP ou na persistência. |
-| Decorator | Existe em `ProdutoConstante` e `DescontoReconstituido`. | Preservar delegação e os valores de cada leitura. `FaturaConstante` compõe cálculo e vínculos; seu nome, por si só, não a torna um decorator. |
-| Specification | Há condições de validade no cálculo, mas ainda não há um contrato explícito de Specification no código. | Implementar especificações para condições reais da precificação, com composição, mensagens preservadas e testes de aceitação e rejeição. Etapa 18 proposta. |
+| Objetos com comportamento | Valores como dinheiro, percentual, CPF e quantidade já validam suas entradas; cálculos e descontos têm operações próprias. | Os tipos de domínio protegem as regras que conhecem, incluindo as invariantes da precificação. |
+| Estruturas que apenas expõem dados | Existem records de leitura, como `ClienteConstante`, `CategoriaConstante` e `CidadeConstante`; `Precificacao` já possui `mesmosValores()`. | Os registros materializados conservam o estado observado e validam a composição exigida. |
+| Imutabilidade | Campos finais, records e cópias de listas já são usados, inclusive nos cálculos de fatura. | Os testes distinguem os dados materializados da nova consulta e conferem as cópias defensivas. |
+| Até quatro atributos | O inventário encontrou três tipos acima do limite, todos DTOs de entrada. | Os DTOs planos de produto, cliente e endereço preservam a desserialização do JSON. |
+| Construtores e dependências | Os novos objetos usam construtores secundários que delegam ao primário. A composição de `PgFaturas` foi corrigida. | A montagem das rotas fornece os colaboradores usados na API. Os construtores secundários preservam formas úteis de construção. |
+| Métodos estáticos próprios | O inventário do código de produção registra apenas o `main` exigido pela JVM. | O inventário do JAR desconsidera os métodos gerados pelo compilador. |
+| Strategy | Existe em `RegraDePrecificacao`, `AcrescimoSobreCusto` e `MargemSobreVenda`, e nas alternativas de `Desconto`. | A escolha das fórmulas e do desconto ocorre na composição dos objetos de domínio. |
+| Decorator | Existe em `ProdutoConstante` e `DescontoReconstituido`. | O produto conserva a leitura e delega a identidade. O desconto reconstituído delega à estratégia composta. |
+| Specification | `Precificacao` compõe duas especificações que relacionam custo, venda e percentual. | A condição de ordem dos preços também é usada antes do cálculo do percentual. Etapa 18 concluída. |
 
-**Última validação executada, no encerramento da etapa 15:** 323 testes em 31 suítes sem banco e 444 em 46 suítes no perfil completo, sem falhas, erros ou ignorados. O completo inclui os unitários. A revisão documental atual não executou uma nova rodada de testes. Os registros detalhados e caminhos de relatórios estão na seção 12.
+**Última validação na etapa 34.** Passaram 369 testes em 38 suítes sem banco e 491 em 53 suítes no perfil completo, sem falhas, erros ou casos ignorados. O perfil completo inclui os unitários. Os relatórios estão registrados na seção 12.
 
-Alguns documentos antigos usam o caminho `C:\Java\workspace\modelagem-dominio` e descrevem funcionalidades que já foram concluídas no anêmico. Para retomar o trabalho, conferir este registro e o código do checkout atual.
+Para retomar o trabalho, conferir este registro e o código do checkout atual.
 
 ### Histórico da retomada funcional — 10 de novembro de 2026
 
@@ -73,7 +93,7 @@ A conferência foi feita no código atual, incluindo as implementações do comm
 
 O resultado da conferência inicial confirmou os cenários existentes e identificou verificações pendentes. As lacunas de falha na inserção do histórico e de alterações concorrentes da precificação foram cobertas na revisão da etapa 6, registrada abaixo. As demais etapas foram concluídas individualmente; seus registros preservam as contagens e decisões de cada entrega.
 
-**Sequência para continuar:** retomar a revisão de modelagem pela etapa 16, somente após autorização. O escopo imediato é `PgCidades.cidadesDaConsulta`; as demais correções, seus passos e critérios de aceite estão na [seção 13](#proximas-etapas-modelagem). As 21 entregas funcionais e as 15 correções concluídas permanecem como histórico, sem reimplementação.
+A revisão de modelagem foi concluída. A [validação final](Validacao-Equivalencia-Modelos.md#validacao-final-modelagem) registra a última execução.
 
 ## 1. O que já foi feito
 
@@ -300,7 +320,7 @@ Para cada etapa:
 
 “Pode seguir” autoriza a próxima etapa apresentada. Falta de resposta não é aprovação. Não executar o plano inteiro nem fazer commit/push sem instrução do usuário. A proposta de desconto mínimo de R$ 200 está arquivada na seção 9.
 
-**Retomada atual:** usar as etapas de modelagem da seção 13. Nesta edição foi autorizada a atualização do documento; a etapa 16 continua pendente. Antes de implementar cada escopo, conferir novamente as classes e os testes, porque o checkout pode receber alterações feitas em outro computador. Se uma entrega precisar ser dividida, registrar as subetapas e manter o pedido de ok entre elas.
+A retomada da modelagem segue a seção 13. Antes de implementar cada escopo, conferir novamente as classes e os testes, porque o checkout pode receber alterações feitas em outro computador. Se uma entrega precisar ser dividida, registrar as subetapas e manter o pedido de ok entre elas.
 
 ### Ordem da equiparação funcional — concluída
 
@@ -1006,7 +1026,7 @@ Se houver verificação obrigatória pendente, não marcar a etapa como concluí
 
 O documento de entrada `Documentacao-e-Plano-Precificacao.md`, fornecido pelo usuário, orientou o formato. As convenções do rico foram conferidas em `Documentacao-Precificacao.md`, no README e nos objetos existentes. As instruções de trabalho deste plano só se aplicam quando o usuário autorizar sua implementação.
 
-## 12. Revisão de modelagem — etapas 1 a 15 concluídas
+## 12. Revisão de modelagem — etapas 1 a 34 concluídas
 
 Após a equiparação funcional, o usuário solicitou uma revisão dos conceitos de Elegant Objects e autorizou inicialmente os objetos de valor. Cada etapa exige aprovação explícita; concluir uma não autoriza antecipar a próxima. Os registros abaixo delimitam o que foi autorizado e concluído.
 
@@ -1179,169 +1199,227 @@ Após a equiparação funcional, o usuário solicitou uma revisão dos conceitos
 - **Escopo e status:** concluída em 10/11/2026. SQL, transações, contratos HTTP e regras de negócio preservados. Nenhuma migração ou alteração no anêmico. Aguardar ok antes da etapa 16.
 - **Próxima etapa proposta:** substituir `PgCidades.cidadesDaConsulta` por comportamento de objeto, preservando materialização, ordem, fechamento do resultado SQL e ausência de consultas adicionais. Não iniciada nesta etapa.
 
-<a id="proximas-etapas-modelagem"></a>
-
-## 13. Próximas etapas da revisão de modelagem — propostas
-
-**Status de todas as etapas abaixo: pendentes de implementação e autorização individual.** A atualização deste plano não autoriza executá-las. A retomada começa pela etapa 16; ao concluir uma, registrar o resultado real e pedir ok antes da seguinte, conforme a seção 5.
-
-O levantamento foi feito no checkout atual. Os nomes de métodos abaixo são pontos encontrados no código; os nomes de novos objetos serão definidos na implementação. Antes de cada entrega, conferir o que já existe para reaproveitar as correções anteriores. Dividir uma entrega que se mostrar grande, registrando o novo escopo e mantendo a aprovação entre as partes.
-
-As próximas classes devem representar regras, valores, consultas, comandos ou traduções de falhas com responsabilidade própria. A revisão continuará preservando as funcionalidades da fase anterior: preços, precisão, arredondamento, descontos, campos opcionais, transações, concorrência e respostas HTTP.
-
 ### Etapa 16 — Leitura da coleção de cidades
 
-**Entrega.** Substituir `PgCidades.cidadesDaConsulta` por comportamento de objeto.
+`CidadesDaConsulta` recebe o comando JDBC preparado por `PgCidades`. Seu construtor guarda a dependência. O método `cidades()` executa a consulta, materializa cada linha com `ResultadoSqlDeCidade`, fecha o resultado e devolve uma lista imutável em ordem de código. `PgCidades` continua responsável pelos parâmetros, pelo comando e pela conexão.
 
-**Passo a passo.** 1. Delimitar a responsabilidade pela execução da consulta e pela materialização das linhas. 2. Compor o objeto com a consulta já preparada, reaproveitando `ResultadoSqlDeCidade`. 3. Manter o fechamento do resultado SQL e a propriedade da conexão e do comando no chamador. 4. Conservar ordem e lista imutável. 5. Reutilizar os testes de listagem, filtros, consulta única e valores materializados; acrescentar apenas uma lacuna real de recursos ou falhas, se identificada.
+Os dois casos de `CidadesDaConsultaTest` conferem execução sob demanda, resultado imutável e fechamento do cursor tanto na leitura bem-sucedida quanto na falha de coluna. Os testes de listagem conferem os filtros e uma consulta por operação.
 
-**Aceite.** Uma conexão e uma consulta por listagem, campos e filtros preservados, resultado fechado em sucesso e erro, nenhuma execução de SQL no construtor. Encerrar e pedir ok para a etapa 17.
+A validação em 10 de novembro de 2026 passou com **325 testes sem banco em 32 suítes** e **446 na suíte completa em 47 suítes**, sem falhas, erros ou casos ignorados. A suíte completa inclui os unitários. O perfil de integração gerou o JAR e usou PostgreSQL 15 descartável. A execução usou Java 24 com saída e logs em UTF-8 no Windows. Relatórios em `precificacao-rica/target/surefire-integracao/20261110-235528107`.
+
+A etapa 16 está concluída. A etapa 17 propõe revisar as invariantes de `Precificacao` e `ClienteConstante` e aguarda aprovação.
 
 ### Etapa 17 — Invariantes e comportamento dos estados de domínio
 
-**Entrega.** Revisar as estruturas de estado do núcleo, começando por `Precificacao` e `ClienteConstante`, e a composição com `IdentificacaoCliente`, `ContatoCliente`, `Endereco`, `CategoriaConstante` e `CidadeConstante`.
+`Precificacao` protege o valor composto desde a construção. Custo, venda, percentual e modalidade são obrigatórios. A venda é pelo menos igual ao custo e precisa superá-lo quando o percentual é positivo. Na modalidade de margem sobre venda, o percentual é inferior a 100%. As estratégias continuam responsáveis pelas fórmulas e `Precificacoes` conserva a verificação da ordem antes de calcular a taxa a partir de custo e venda. Uma violação no estado final é traduzida em `PrecificacaoInvalida` com a mensagem da regra e sua causa.
 
-**Passo a passo.** 1. Registrar o papel de cada tipo: valor de domínio, entidade materializada ou representação de leitura. 2. Identificar as invariantes já protegidas e as combinações inválidas que ainda possam ser montadas fora do HTTP. 3. Colocar as proteções e operações necessárias no objeto responsável, preservando os agrupamentos que já validam suas dependências. 4. Revisar cópias defensivas e acessos ao estado pelos consumidores. 5. Manter estruturas simples de leitura quando esse for seu papel, sem inventar comportamento apenas para acrescentar métodos.
+`ClienteConstante`, `CategoriaConstante` e `CidadeConstante` representam estados materializados. Exigem identidade positiva e componentes obrigatórios presentes. Categoria e cidade compõem os objetos de código existentes e mantêm `codigo()` com retorno `long`. O endereço ausente do cliente é representado por `Optional.empty()`. `IdentificacaoCliente`, `ContatoCliente` e `Endereco` já protegem suas referências obrigatórias. Os componentes revisados são imutáveis e cada objeto tem até quatro atributos.
 
-**Aceite.** Estados válidos e responsabilidades demonstráveis, até quatro atributos por objeto do núcleo e operações significativas sem setters. Testar invariantes novas por exemplos de uso; não duplicar testes dos valores que já as garantem. Encerrar e pedir ok para a etapa 18.
+Os adaptadores de leitura traduzem as violações das novas invariantes em falha de persistência. A suíte existente conferiu os contratos HTTP e os fluxos com registros válidos. `PrecificacaoTest` e `EntidadesMaterializadasTest` acrescentaram sete casos para as invariantes da construção direta, incluindo limites válidos e ausência explícita de endereço.
+
+Passaram **332 testes sem banco em 34 suítes** e **453 no perfil completo em 49 suítes**, sem falhas, erros ou casos ignorados. O perfil completo inclui os unitários. A execução usou Java 24, Maven 3.9.9 e PostgreSQL 15 descartável. O JAR foi gerado e o servidor temporário removido. Relatórios em `precificacao-rica/target/surefire-integracao/20261111-000157140`.
+
+A etapa 17 está concluída. A etapa 18 trata da composição das condições de validade com Specification e aguarda aprovação.
 
 ### Etapa 18 — Specification para validade da precificação
 
-**Entrega.** Introduzir um contrato explícito de especificação e condições compostas para a validade do resultado da precificação, hoje verificadas em `Precificacoes`.
+`VendaNaoInferiorAoCusto` e `VendaSuperiorComPercentualPositivo` expressam as condições que relacionam os preços finais. `EspecificacaoDePrecificacao.e(...)` combina as duas condições e informa a primeira violação. `Precificacao` exige a composição na construção. `Precificacoes` reutiliza a ordem dos preços antes de calcular o percentual quando recebe custo e venda.
 
-**Passo a passo.** 1. Separar as condições de venda não inferior ao custo e de compatibilidade entre percentual positivo e venda após arredondamento. 2. Representar essas condições por objetos com comportamento e composição. 3. Integrá-las ao fluxo de cálculo validado, mantendo as fórmulas em `AcrescimoSobreCusto` e `MargemSobreVenda`. 4. Reutilizar os valores `Dinheiro` e `Percentual` e a proteção do estado revisada na etapa 17. 5. Preservar a ordem de validação, as mensagens e as causas.
+A composição cobre as duas regras de preço previstas na etapa. `AcrescimoSobreCusto` e `MargemSobreVenda` calculam os valores. O limite de margem sobre venda é aplicado na estratégia e na construção de `Precificacao`.
 
-**Aceite.** Specification aplicada a condições reais, Strategy preservado e regras reutilizadas em cadastro e alteração. Conferir limites válidos, rejeições e resultados após arredondar. O desconto mínimo descartado não integra esta entrega. Encerrar e pedir ok para a etapa 19.
+Os três novos casos verificam a prioridade entre regras violadas, a rejeição antes de calcular o percentual e o limite em que o arredondamento empata a venda com o custo. Os testes também conferem a mensagem e a causa da exceção em cada caminho.
+
+Passaram **335 testes sem banco** e **456 na suíte completa com PostgreSQL 15 descartável**, sem falhas, erros ou casos ignorados. O JAR foi gerado. Relatórios em `precificacao-rica/target/surefire-integracao/20261111-000614443`.
+
+A etapa 19 trata da composição dos dados do histórico e aguarda aprovação.
 
 ### Etapa 19 — Histórico com composição e até quatro atributos
 
-**Entrega.** Revisar `AlteracaoPrecificacao`, que possui cinco componentes, seu tipo `Valores` e o auxiliar `PgHistoricoDePrecificacao.alteracoes`.
+`AlteracaoPrecificacao` agrupa o código do registro e o código do produto em `Identidade`. A alteração tem quatro componentes. Os objetos de valores anteriores e novos exigem custo, preço de venda e percentual e conservam os decimais lidos do histórico.
 
-**Passo a passo.** 1. Identificar um agrupamento real para a identificação ou os dados da alteração, reduzindo o estado do objeto principal. 2. Proteger os valores anteriores e novos conforme seu papel histórico, sem recalculá-los pelos preços atuais. 3. Substituir a materialização estática por comportamento de objeto. 4. Adaptar `RespostasProduto.historico`: hoje ele serializa diretamente os objetos do histórico, portanto a composição interna deve ganhar uma representação de saída que conserve o JSON anterior. 5. Preservar ordenação e consultas parametrizadas.
+`AlteracoesDaConsulta` recebe o comando JDBC preparado e o código do produto. Executa a consulta, materializa a lista imutável e fecha o cursor. `PgHistoricoDePrecificacao` mantém os parâmetros e a ordenação por código decrescente. A representação HTTP produz `codigo`, `codigoProduto`, `dataAlteracao`, `anteriores` e `novos`.
 
-**Aceite.** Histórico continua com código, produto, data e valores anteriores/novos corretos; o núcleo atende ao limite de atributos e o JSON permanece compatível. Reutilizar os testes de histórico, ordenação e leitura. Encerrar e pedir ok para a etapa 20.
+O teste HTTP existente passou a comparar a identidade e a data de cada alteração com o registro no PostgreSQL. Ele também confere os preços anteriores e novos após duas alterações, o histórico vazio e o produto ausente.
+
+Passaram **335 testes sem banco** e **456 na suíte completa com PostgreSQL 15 descartável**, sem falhas, erros ou casos ignorados. O JAR foi gerado. Relatórios em `precificacao-rica/target/surefire-integracao/20261111-001051404`.
+
+A etapa 20 trata da leitura da coleção de produtos e aguarda aprovação.
 
 ### Etapa 20 — Coleção de produtos por objetos de leitura
 
-**Entrega.** Substituir `ConsultaSqlDeProdutos.produtos` e revisar sua composição com os adaptadores de linha existentes.
+`ConsultaSqlDeProdutos` prepara o SQL, aplica os filtros e fornece o comando e o mapeamento de linha a `ProdutosDaConsulta`. O novo objeto executa a consulta, fecha o cursor e entrega uma lista imutável em ordem de código.
 
-**Passo a passo.** 1. Compor execução e materialização sem espalhar a leitura por atributo. 2. Reaproveitar `ResultadoSqlDeProduto`, `ResultadoSqlDePrecificacao` e `produtos.pg.ResultadoSqlDeCategoria`. 3. Manter a construção de `ProdutoConstante` e os colaboradores fornecidos à coleção. 4. Preservar fechamento de recursos, filtros e ordenação.
+A listagem da API usa `PgProdutosConstantes` e reaproveita `ResultadoSqlDeProduto` com os adaptadores de precificação e categoria. A coleção `PgProdutos` também usa o novo objeto de consulta e produz os produtos que leem seus atributos sob demanda.
 
-**Aceite.** Mesmos valores e falhas nas consultas individuais e nas listas, sem consultas adicionais na serialização. Os produtos já materializados conservam seu estado. Encerrar e pedir ok para a etapa 21.
+O teste integrado confere uma conexão e um comando para a resposta da API. Depois de gravar um novo preço no PostgreSQL, o produto materializado conserva o valor anterior e o produto sob demanda obtém o valor atualizado. Uma nova listagem pela API devolve o preço atualizado.
+
+Passaram **335 testes sem banco** e **456 na suíte completa com PostgreSQL 15 descartável**, sem falhas, erros ou casos ignorados. O JAR foi gerado. Relatórios em `precificacao-rica/target/surefire-integracao/20261111-001429459`.
+
+A etapa 21 trata dos comandos de alteração de precificação e aguarda aprovação.
 
 ### Etapa 21 — Comandos da alteração de precificação
 
-**Entrega.** Substituir os auxiliares `AlteracaoSqlDePrecificacao.registrar` e `informarValores` por composição de comandos de persistência.
+`AtualizacaoDaPrecificacao` grava custo, preço de venda e percentual e materializa a linha devolvida pelo PostgreSQL. `RegistroDoHistoricoDePrecificacao` grava os valores anteriores e os que o banco devolveu. Os dois comandos reutilizam `ParametrosSqlDaPrecificacao` para preencher custo, venda e percentual.
 
-**Passo a passo.** 1. Definir os comandos de atualização e gravação do histórico com a conexão recebida. 2. Reutilizar os valores e o comportamento de precificação já revisados. 3. Manter a leitura protegida, a comparação com o estado gravado e o limite transacional. 4. Preservar a regra de não criar histórico quando os valores não mudam.
+`AlteracaoSqlDePrecificacao` abre a conexão, bloqueia a linha do produto e compara os valores. Quando há mudança, fornece a mesma conexão aos dois comandos e coordena a confirmação ou o desfazimento. Valores iguais encerram a operação após a leitura.
 
-**Aceite.** Preço e histórico são confirmados ou desfeitos juntos; nenhuma abertura de conexão por um comando interno. Reutilizar os cenários de falha após escrita e de concorrência no PostgreSQL. Encerrar e pedir ok para a etapa 22.
+Os testes de reprecificação conferem uma única conexão, as duas gravações, a repetição de valores, o desfazimento após uma falha que alcança o histórico e a atualização concorrente da mesma linha.
+
+Passaram **335 testes sem banco** e **456 na suíte completa com PostgreSQL 15 descartável**, sem falhas, erros ou casos ignorados. O JAR foi gerado. Relatórios em `precificacao-rica/target/surefire-integracao/20261111-001938242`.
+
+A etapa 22 trata da validação e das falhas do adaptador de produtos e aguarda aprovação.
 
 ### Etapa 22 — Validação e falhas do adaptador de produtos
 
-**Entrega.** Rever `PgProdutos.validarCodigo` e `falhaAoGravar` por objetos responsáveis pela validade da referência e pela classificação da falha.
+`CodigoProduto` exige um código positivo antes da abertura da conexão. A consulta individual, a consulta materializada, o vínculo de categoria, a alteração de preço e a leitura do histórico usam o mesmo objeto de valor.
 
-**Passo a passo.** 1. Preservar a rejeição de código inválido antes do acesso ao banco. 2. Compor a tradução de falhas com causa e logger explícitos. 3. Manter a identificação específica da chave estrangeira de categoria, considerando a operação executada. 4. Evitar classificar toda falha de integridade como categoria ausente.
+`FalhaNaGravacaoProduto` recebe a exceção SQL original, a indicação de que a gravação inclui categoria e o logger de `PgProdutos`. O motivo `CATEGORIA_AUSENTE` exige uma gravação com categoria e a violação PostgreSQL `23503` da restrição `produto_categoria_codigo_fkey`. As demais falhas são traduzidas para `PERSISTENCIA_INDISPONIVEL`, com a causa original e log no nível `SEVERE` contendo o SQLState.
 
-**Aceite.** Motivos, mensagens, causas e respostas HTTP preservados, incluindo categoria removida entre validação e gravação e falhas de outras restrições. Encerrar e pedir ok para a etapa 23.
+Os seis novos casos cobrem a restrição exata, a gravação sem categoria, outra restrição, outro estado SQL e a falta de metadados. Os testes com PostgreSQL verificam a remoção da categoria entre validação e gravação e a falha de outra chave estrangeira.
+
+Passaram **341 testes sem banco** e **462 na suíte completa com PostgreSQL 15 descartável**, sem falhas, erros ou casos ignorados. O JAR foi gerado. Relatórios em `precificacao-rica/target/surefire-integracao/20261111-002352110`.
+
+A etapa 23 trata da materialização e das consultas de clientes e aguarda aprovação.
 
 ### Etapa 23 — Materialização e consultas de clientes
 
-**Entrega.** Substituir a construção estática de clientes e endereços em `PgClientes`, começando por `clienteEncontrado`, `clienteDaLinha` e `enderecoDaLinha`.
+`ResultadoSqlDeCliente` compõe identificação, contato e endereço a partir da mesma linha, usando os valores de domínio existentes. Ele distingue a ausência de uma linha na consulta individual ou no retorno do `UPDATE`. A listagem usa o mesmo mapeamento de cada linha.
 
-**Passo a passo.** 1. Separar consulta, leitura da linha e composição do cliente. 2. Reaproveitar os valores de identificação, contato, endereço e `TelefoneOpcional` já existentes. 3. Preservar ausência de opcionais e a interpretação dos dados armazenados. 4. Manter o resultado materializado utilizável após o fechamento do cursor.
+`ResultadoSqlDeEndereco` materializa o endereço opcional. O código de cidade ausente representa um cliente sem endereço. O cliente e seus valores ficam disponíveis após o fechamento do cursor.
 
-**Aceite.** Cadastro, consulta e listagem mantêm os mesmos campos, valores e falhas, com leitura coerente e sem consulta por atributo. Encerrar e pedir ok para a etapa 24.
+O teste integrado lê os dados de contato e endereço do cliente materializado e confirma uma conexão e um comando. Também confere consulta e listagem HTTP, leitura atualizada, cliente ausente e falha de materialização. Os testes de atualização conferem o retorno do `UPDATE` e o desfazimento quando a linha atualizada é inválida.
+
+Passaram **341 testes sem banco** e **462 na suíte completa com PostgreSQL 15 descartável**, sem falhas, erros ou casos ignorados. O JAR foi gerado. Relatórios em `precificacao-rica/target/surefire-integracao/20261111-002739268`.
+
+A etapa 24 trata dos comandos da atualização parcial de clientes e aguarda aprovação.
 
 ### Etapa 24 — Comandos da atualização parcial de clientes
 
-**Entrega.** Substituir os auxiliares de escrita `PgClientes.atualizar` e `preencherEndereco` e rever a consulta de existência na conexão do chamador.
+`AtualizacaoDoCliente` recebe a conexão da transação e monta o `UPDATE` a partir de `AlteracaoCliente`. O comando escreve os campos informados. Um endereço presente substitui o conjunto de seis colunas e um endereço explicitamente nulo limpa o conjunto. `ParametrosSqlDoEndereco` preenche os parâmetros do endereço no cadastro e na atualização.
 
-**Passo a passo.** 1. Compor comandos que recebam a conexão e a alteração validada. 2. Reaproveitar `AlteracaoCliente`, `CampoPreservado`, `CampoRemovido` e `CampoSubstituido`, já implementados. 3. Gravar somente as colunas solicitadas. 4. Manter endereço como substituição ou remoção do conjunto inteiro. 5. Preservar a consulta protegida e a transação única.
+`ExistenciaDeCidade` verifica a referência na conexão da atualização. `ExistenciaDeCliente` também recebe a conexão do chamador e aplica `FOR KEY SHARE` quando o chamador solicita a consulta protegida. `PgClientes` confirma ou desfaz a transação após materializar a linha devolvida pelo `UPDATE`.
 
-**Aceite.** Omissão, nulo e substituição continuam distintos; alterações conjuntas são atômicas e atualizações concorrentes não perdem campos. O PATCH existente permanece o contrato de referência. Encerrar e pedir ok para a etapa 25.
+Os testes integrados cobrem omissão, remoção, substituição, validação da cidade, escritas conjuntas, reversão após falha e concorrência. O cenário de endereço confere que a validação da cidade e o `UPDATE` compartilham uma conexão.
+
+Passaram **341 testes sem banco** e **462 na suíte completa com PostgreSQL 15 descartável**, sem falhas, erros ou casos ignorados. O JAR foi gerado. Relatórios em `precificacao-rica/target/surefire-integracao/20261111-003201884`.
+
+A etapa 25 trata das falhas e da reversão das operações de clientes e aguarda aprovação.
 
 ### Etapa 25 — Falhas e reversão das operações de clientes
 
-**Entrega.** Rever `PgClientes.falhaAoCadastrar`, `violaRestricao`, `desfazer` e `validarCodigo` por responsabilidades de objetos.
+`CodigoCliente` valida a referência antes de abrir a conexão para consultar ou alterar um cliente. `FalhaNaGravacaoCliente` usa o estado SQL, a restrição e o tipo de gravação para traduzir CPF ou e-mail duplicado e referência de cidade ausente. As demais falhas de gravação retornam indisponibilidade e registram o estado SQL, preservando a exceção original.
 
-**Passo a passo.** 1. Preservar validação de código antes de I/O. 2. Classificar CPF, e-mail e referência de cidade pelas restrições corretas. 3. Manter falhas não reconhecidas como indisponibilidade. 4. Compor a reversão sem substituir a falha original; conservar eventuais falhas adicionais de rollback e os registros de diagnóstico.
+`ReversaoDaAlteracaoCliente` recebe a conexão da transação e registra uma eventual falha de rollback. Quando o rollback lança outra exceção, ela fica suprimida na causa original. Se o driver relançar a mesma instância, a exceção original segue intacta.
 
-**Aceite.** Causas e respostas específicas preservadas; falha de banco não vira erro de campo incorreto. Reutilizar os testes de duplicidade, chave estrangeira, atomicidade e rollback. Encerrar e pedir ok para a etapa 26.
+Os quatro novos casos verificam a classificação conforme a operação, a falta de metadados, o conteúdo do log e a preservação da causa quando o rollback falha. Os testes com PostgreSQL conferem duplicidade, chaves estrangeiras, atomicidade e reversão de alterações.
+
+Passaram **345 testes sem banco** e **466 na suíte completa com PostgreSQL 15 descartável**, sem falhas, erros ou casos ignorados. O JAR foi gerado. Relatórios em `precificacao-rica/target/surefire-integracao/20261111-003613620`.
+
+A etapa 26 trata dos comandos de gravação de fatura e itens e aguarda aprovação.
 
 ### Etapa 26 — Gravação de fatura e itens por comandos
 
-**Entrega.** Substituir `PgFaturas.cadastrarCabecalho` e `cadastrarItens` por comandos compostos de persistência.
+`CadastroDoCabecalhoDaFatura` grava o desconto contratado e os vínculos opcionais e devolve o código gerado pelo banco. `CadastroDosItensDaFatura` grava em lote, com a quantidade exata e a posição original de cada item.
 
-**Passo a passo.** 1. Fazer os comandos receberem a conexão da operação. 2. Preservar código e data gerados no banco, ordem dos itens e quantidade exata. 3. Gravar o registro original do desconto e os vínculos opcionais existentes. 4. Manter a materialização do retorno antes da confirmação, sem duplicar a validação de `CalculoFatura`.
+`PgFaturas` prepara o cálculo, fornece a mesma conexão aos dois comandos e materializa a fatura antes de confirmar a transação. A leitura recupera a data gerada pelo PostgreSQL.
 
-**Aceite.** Cabeçalho, itens e retorno pertencem à mesma transação. Falha no segundo item ou na materialização desfaz toda a operação. Nenhuma gravação é introduzida na simulação. Encerrar e pedir ok para a etapa 27.
+O teste integrado de cadastro confere uma conexão para referências, gravação e retorno. Os testes de falha no segundo item e na materialização verificam o desfazimento do cabeçalho e dos itens. Os testes de simulação verificam a operação de leitura.
+
+Passaram **345 testes sem banco** e **466 na suíte completa com PostgreSQL 15 descartável**, sem falhas, erros ou casos ignorados. O JAR foi gerado. Relatórios em `precificacao-rica/target/surefire-integracao/20261111-003942695`.
 
 ### Etapa 27 — Classificação de falhas e rollback de faturas
 
-**Entrega.** Substituir `PgFaturas.falhaLeitura`, `falhaSql` e `desfazer` por comportamento de objetos.
+`FalhaNaLeituraDeFatura` traduz falhas técnicas de consulta e materialização. `FalhaNaGravacaoDeFatura` percorre a cadeia JDBC, inclusive em gravações em lote. O SQLState `23503` só indica cliente ou produto ausente quando o nome da restrição corresponde ao vínculo. A exceção recebida continua como causa da falha traduzida.
 
-**Passo a passo.** 1. Preservar a tradução das falhas de leitura e cálculo provenientes da persistência. 2. Manter a análise da cadeia de exceções SQL e das restrições de cliente e produto. 3. Conservar a causa original e as falhas adicionais de reversão. 4. Preservar logs úteis e o detalhe genérico no HTTP.
+`ReversaoDaOperacaoDeFatura` usa a conexão da operação de cadastro ou simulação. Se o rollback também falhar, a exceção adicional é registrada como suprimida na falha original. O registro técnico contém o SQLState e, na leitura, o tipo da exceção. A resposta HTTP de indisponibilidade usa a mensagem genérica.
 
-**Aceite.** Referência ausente continua distinta de indisponibilidade, inclusive após validação inicial; erros de outros tipos não recebem classificação falsa. Usar os cenários reais já existentes e complementar somente lacunas da classificação. Encerrar e pedir ok para a etapa 28.
+Os oito novos testes conferem a cadeia de erros de lote, os metadados ausentes ou incompatíveis, o diagnóstico de leitura e a preservação da falha original após erro de rollback. Os testes PostgreSQL existentes confirmam 404 para chaves estrangeiras de cliente ou produto violadas após a validação inicial, 503 para falhas técnicas e ausência de gravação parcial.
+
+Passaram **353 testes sem banco** e **474 na suíte completa com PostgreSQL 15 descartável**, sem falhas, erros ou casos ignorados. O JAR foi gerado. Relatórios em `precificacao-rica/target/surefire-integracao/20261111-004612280`.
 
 ### Etapa 28 — Parâmetros HTTP por objetos de interpretação
 
-**Entrega.** Substituir os auxiliares de parâmetros de `TkListaCidades`, `TkListaProdutos` e `TkListaFaturas`, incluindo a construção de filtros e a conversão de data e código.
+`ParametrosDaConsulta` lê a primeira ocorrência de cada parâmetro e decodifica nome e valor em UTF-8. `FiltrosDeCidadesNaUrl`, `FiltrosDeProdutosNaUrl` e `FiltrosDeFaturasNaUrl` compõem os filtros dos seus respectivos domínios. A interpretação mantém o tratamento de espaços, vazios, datas e códigos de cada rota. Os endpoints validam os filtros antes de consultar o banco.
 
-**Passo a passo.** 1. Localizar a parte compartilhável da leitura da URL e as regras específicas de cada filtro. 2. Compor objetos de interpretação e os filtros do domínio. 3. Preservar UTF-8, espaços, parâmetros vazios e a política atual para ocorrências repetidas. 4. Manter a validação antes do banco e a busca literal dos caracteres especiais.
+Os testes existentes passaram a conferir que uma ocorrência repetida não substitui a primeira, mesmo quando esta está vazia, em branco ou é inválida conforme a rota. A execução também verificou a decodificação com uma JVM configurada para Windows-1252, a busca literal de caracteres especiais e os resultados dos filtros combinados no PostgreSQL.
 
-**Aceite.** Filtros isolados e combinados mantêm os resultados, mensagens e ordenação, inclusive no Windows. Não criar uma classe utilitária estática central para substituir as anteriores. Encerrar e pedir ok para a etapa 29.
+Passaram **353 testes sem banco** e **474 na suíte completa com PostgreSQL 15 descartável**, sem falhas, erros ou casos ignorados. O JAR foi gerado. Relatórios em `precificacao-rica/target/surefire-integracao/20261111-005803964`.
 
 ### Etapa 29 — Entradas de categoria e atualização de cliente
 
-**Entrega.** Rever `NomeCategoriaJson.ler` e os auxiliares `TkAlteracaoCliente.campoDeTexto`, `alteracaoEmail` e `alteracaoTelefone`.
+Cadastro e renomeação usam `NomeCategoriaJson` para interpretar o corpo e construir o nome de domínio. A configuração do JSON continua rejeitando campos desconhecidos. No PATCH de cliente, `CampoDeTextoJson` verifica o formato dos campos textuais e compõe os valores e as operações de alteração existentes.
 
-**Passo a passo.** 1. Substituir as fábricas e conversões estáticas por objetos da borda HTTP. 2. Preservar os tipos de entrada aceitos e a rejeição de campos desconhecidos. 3. Compor os valores e as operações de alteração já existentes. 4. Manter JSON e bibliotecas de serialização fora do domínio.
+Omissão preserva o valor. E-mail nulo ou em branco continua inválido. Telefone nulo solicita remoção e telefone em branco continua inválido. A validação do formato precede a interpretação dos valores. Os testes acrescentados conferem e-mail em branco e a precedência do erro de formato quando o telefone tem tipo inválido.
 
-**Aceite.** Omissão, nulo, branco e substituição continuam recebendo o tratamento correto em cada operação, com as mesmas respostas. Reaproveitar os testes de cadastro, renomeação e PATCH, sem recriar essas funcionalidades. Encerrar e pedir ok para a etapa 30.
+Passaram **355 testes sem banco** e **476 na suíte completa com PostgreSQL 15 descartável**, sem falhas, erros ou casos ignorados. O JAR foi gerado. Relatórios em `precificacao-rica/target/surefire-integracao/20261111-010219680`.
 
 ### Etapa 30 — Composição do pedido e dos filtros de fatura
 
-**Entrega.** Rever `PedidoFatura.json`, `item` e `codigo`, e o auxiliar `FiltrosFaturas.validarData`.
+`JsonDeFatura` reúne a configuração JSON usada no cadastro, na simulação e na listagem. Cadastro e simulação interpretam o mesmo `PedidoFatura`. Cada item compõe a referência ao produto e a quantidade. Os códigos do produto e do cliente reutilizam `InteiroExato` e preservam as mensagens específicas de fatura.
 
-**Passo a passo.** 1. Compor a configuração JSON e a interpretação dos itens e referências sem executar cálculo ou SQL no construtor. 2. Reutilizar a conversão numérica já disponível quando seu contrato for compatível, preservando as mensagens de fatura. 3. Manter o compartilhamento do pedido entre cadastro e simulação. 4. Expressar a validade das datas por comportamento, conservando os limites e o intervalo inclusivo para o usuário.
+`DataDaConsultaDeFaturas` valida cada limite informado. O filtro mantém o intervalo inclusivo para o usuário e traduz a data final para o início do dia seguinte na consulta SQL.
 
-**Aceite.** Códigos fracionários ou fora do limite continuam inválidos; descontos, itens, opcionais e filtros mantêm suas regras. Cadastro e simulação continuam recebendo a mesma interpretação. Encerrar e pedir ok para a etapa 31.
+Os testes do cadastro e da simulação conferem as mensagens de códigos fracionários, fora do limite e iguais a zero antes de qualquer acesso ao banco. A integração verifica itens, descontos, vínculos opcionais, datas extremas e a inclusão de todo o último dia.
+
+Passaram **355 testes sem banco** e **476 na suíte completa com PostgreSQL 15 descartável**, sem falhas, erros ou casos ignorados. O JAR foi gerado. Relatórios em `precificacao-rica/target/surefire-integracao/20261111-010709187`.
 
 ### Etapa 31 — Representações HTTP e estruturas acima de quatro atributos
 
-**Entrega.** Rever `RespostasProduto.dadosDoProduto` e os DTOs maiores encontrados na borda: `TkCadastroProduto.Cadastro`, `RespostasProduto.ProdutoResposta`, `TkCadastroCliente.Cadastro`, `EnderecoJson`, `RespostasCliente.ClienteResposta`, `EnderecoResposta`, `RespostasFatura.FaturaResposta` e `ResumoResposta`.
+As representações de saída compõem dados com responsabilidades próprias. `@JsonUnwrapped` publica os campos desses grupos no mesmo nível do JSON.
 
-**Passo a passo.** 1. Separar os dados do contrato HTTP dos objetos de domínio. 2. Buscar composição por conceitos reais e representação explícita da saída para trabalhar com objetos menores. 3. Conservar nomes e disposição dos campos, enumerações, valores opcionais e anotações de serialização. 4. Avaliar cada representação por seu papel de fronteira, sem deslocar regras de negócio para DTOs nem mascarar o número de atributos com um agrupamento sem significado.
+| Representação | Solução |
+| --- | --- |
+| `ProdutoResposta` | Compõe a precificação e mantém a categoria opcional. O construtor consulta a precificação uma vez e substitui `dadosDoProduto`. |
+| `AlteracaoResposta` | Compõe a identidade do histórico e preserva os objetos `anteriores` e `novos`. |
+| `ClienteResposta` | Compõe identificação, contato e endereço. Telefone e endereço ausentes continuam explícitos como `null`. |
+| `EnderecoResposta` | Compõe a localização dentro do endereço, incluindo o complemento opcional. |
+| `FaturaResposta` | Compõe valores e vínculos. A simulação reaproveita a representação de valores. |
+| `ResumoResposta` | Reaproveita os vínculos da fatura. Os vínculos ausentes são omitidos nas duas respostas. |
+| `TkCadastroProduto.Cadastro` | Mantém seis campos do JSON plano de entrada e compõe o nome, a categoria e a precificação pelos objetos existentes. |
+| `TkCadastroCliente.Cadastro` | Mantém cinco campos do JSON plano de entrada e compõe identificação, contato e endereço opcional. |
+| `EnderecoJson` | Mantém seis campos do objeto de entrada e reaproveita a composição existente de CEP, localização e código de cidade no cadastro e no PATCH. |
 
-**Aceite.** Respostas e entradas continuam compatíveis com a coleção Postman; o formato externo não muda por causa da composição interna. Registrar a solução e eventuais limitações de cada DTO na revisão, em vez de declarar aderência apenas pela contagem. Encerrar e pedir ok para a etapa 32.
+Os três DTOs de entrada preservam os campos usados pelo Jackson para receber o JSON. A interpretação produz objetos do domínio e as validações permanecem nos tipos responsáveis por elas.
+
+Passaram **355 testes sem banco** e **476 na suíte completa com PostgreSQL 15 descartável**, sem falhas, erros ou casos ignorados. O JAR foi gerado. Relatórios em `precificacao-rica/target/surefire-integracao/20261111-011209638`. O executor da coleção Postman comparou **150 pares de respostas HTTP** dos dois módulos em dois bancos temporários. A execução usou Node.js 20 com o reaproveitamento de conexões HTTP desativado no executor após um reset de conexão. O relatório está em `precificacao-rica/target/comparacao-modelagem-etapa-31.json`.
 
 ### Etapa 32 — Configuração e preparação do banco por composição
 
-**Entrega.** Rever `EnderecoPostgres.daUrl`, `validarNome` e `BancoPostgres.opcaoCriacao`, além da montagem dos colaboradores de preparação.
+`ConfiguracaoPostgres` interpreta as variáveis de ambiente e compõe credenciais, endereço e opção de criação. `OpcaoCriacaoBanco` aceita `true` ou `false`, com espaços nas extremidades e variação de maiúsculas. `UrlPostgres` compõe a URL de manutenção a partir do endereço JDBC. `NomeBancoPostgres` valida o limite em bytes e aplica o escape necessário no identificador SQL.
 
-**Passo a passo.** 1. Separar a interpretação da configuração da execução da preparação. 2. Compor os valores e validadores, preservando os nomes de banco e URLs aceitos. 3. Manter abertura de conexão e criação do banco em operações explícitas. 4. Conservar os comandos de execução, variáveis de ambiente, aplicação de migrações e tratamento da criação concorrente.
+`BancoPostgres` usa a mesma operação para verificar a conexão com criação automática ligada ou desligada. O acesso de manutenção fica condicionado ao erro de banco ausente e à opção de criação. As migrações ocorrem antes de a API aceitar requisições.
 
-**Aceite.** Os testes distinguem banco ausente, criação desativada, senha incorreta, disputa de criação e falha inesperada. Inicialização mantém as mesmas garantias e não expõe credenciais. Encerrar e pedir ok para a etapa 33.
+Os testes cobrem interpretação da opção, preservação das URLs, autenticação, permissões, criação concorrente e falha de migração. Um cenário com um banco existente que recusa conexões confirma a preservação da causa e o diagnóstico de conexão. Os diagnósticos da preparação registram o SQLState e a mensagem pública.
+
+Passaram **357 testes sem banco** e **479 na suíte completa com PostgreSQL 15 descartável**, sem falhas, erros ou casos ignorados. O JAR foi gerado. Relatórios em `precificacao-rica/target/surefire-integracao/20261111-011907042`.
 
 ### Etapa 33 — Montagem da aplicação e revisão dos construtores
 
-**Entrega.** Rever a fábrica `AplicacaoRica.rotas` e concluir a inspeção de composição, atributos e formas de construção dos objetos, incluindo estratégias, coleções e cálculos.
+`RotasDaAplicacaoRica` compõe as coleções e os adaptadores HTTP. O caminho principal fornece as categorias à coleção de produtos, as cidades à coleção de clientes e as consultas de clientes e produtos à coleção de faturas. `RotaPorMetodo` devolve 405 com `Allow` quando a operação solicitada é incompatível com o caminho. O `main` prepara o banco, abre o servidor e usa a mesma montagem de rotas exercitada pelos testes.
 
-**Passo a passo.** 1. Compor as rotas e dependências por objetos com responsabilidade explícita. 2. Manter o `main` como ponto de entrada da JVM. 3. Conferir os construtores primários e a delegação dos secundários, evitando I/O na construção e colaboradores ocultos. 4. Revisar classes com muitas operações, como `Precificacoes`, `CalculoFatura` e os adaptadores, usando coesão e formas úteis de construção como critérios. 5. Registrar as decisões sem criar sobrecargas ou métodos artificiais.
+| Elemento revisado | Decisão |
+| --- | --- |
+| `Precificacoes` e estratégias | As três combinações de entrada compartilham a mesma validação e a estratégia recebida pelo construtor. As estratégias de acréscimo e margem têm fórmulas e contratos próprios. |
+| `CalculoFatura` | O construtor valida a composição e copia os itens. A leitura dos preços acontece ao calcular ou preparar a fatura. |
+| Coleções PostgreSQL | A montagem principal fornece os colaboradores explícitos. Os construtores secundários preservam as formas de construção usadas por testes e outros chamadores. A consulta ocorre nas operações das coleções. |
+| `ProdutoConstante` e `DescontoReconstituido` | O produto mantém os valores materializados e delega a identidade. O desconto delega cálculo, validação e registro à estratégia composta. |
+| Adaptadores HTTP | Os construtores configuram a serialização e recebem as coleções. Os DTOs planos de entrada descritos na etapa 31 preservam o mapeamento do Jackson. |
 
-**Aceite.** Aplicação e testes conseguem montar colaboradores sem abrir conexão indevida; não há dependências introduzidas apenas para satisfazer contagens. Estratégias e decoradores preservam seus contratos, e as pendências de modelagem estão resolvidas ou descritas com precisão. Encerrar e pedir ok para a etapa 34.
+Os 13 casos de `RotasDaAplicacaoRicaTest` usam uma fonte de dados que rejeita qualquer conexão. Os casos verificam 405 e o cabeçalho `Allow` para cada rota, incluindo a precedência do caminho literal de simulação. O inventário de métodos estáticos de produção aponta o `main` como único método declarado dessa forma.
+
+Passaram **370 testes sem banco** e **492 na suíte completa com PostgreSQL 15 descartável**, sem falhas, erros ou casos ignorados. O JAR foi gerado. Relatórios em `precificacao-rica/target/surefire-integracao/20261111-012535762`.
 
 ### Etapa 34 — Validação final e atualização das evidências
 
-**Entrega.** Consolidar o resultado da revisão de modelagem e os exemplos de código e estrutura para o estudo.
+O inventário do JAR confirmou o `main` como único método estático próprio e três DTOs de entrada acima de quatro atributos. A revisão consolidou as verificações repetidas de 405 e `Allow` em `RotasDaAplicacaoRicaTest`. Os testes de validação dos pedidos, cálculo, persistência e falhas mantêm suas responsabilidades.
 
-**Passo a passo.** 1. Conferir o inventário de auxiliares estáticos próprios e as decisões sobre estruturas de leitura e DTOs. 2. Revisar o valor dos testes, removendo repetições e preenchendo lacunas de regras, persistência ou falhas. 3. Executar os modos unitário e completo com PostgreSQL separado e confirmar que não houve casos ignorados. 4. Validar os contratos HTTP e os fluxos da coleção Postman com os executores existentes. 5. Atualizar README, este plano e as evidências com os resultados observados e os limites da validação.
+Passaram **369 testes sem banco** e **491 no perfil completo com PostgreSQL 15 descartável**, sem falhas, erros ou casos ignorados. A coleção foi executada por HTTP em duas rodadas por módulo, com **150 pares de respostas comparados**. Os relatórios, exemplos para o estudo e o alcance da validação estão no [registro final](Validacao-Equivalencia-Modelos.md#validacao-final-modelagem).
 
-**Aceite.** Strategy, Decorator e Specification têm usos identificáveis no código; responsabilidades, imutabilidade, composição e limites de estado foram revisados. Contagens de testes ou classes não são apresentadas como prova isolada de qualidade. Registrar o encerramento real e apresentar ao usuário antes de iniciar qualquer nova mudança do estudo.
+<a id="proximas-etapas-modelagem"></a>
 
-### Critérios comuns de encerramento das próximas etapas
+## 13. Critérios usados na revisão de modelagem
+
+As 34 etapas da rodada anterior estão concluídas. As evidências desse fechamento estão no [registro final](Validacao-Equivalencia-Modelos.md#validacao-final-modelagem). A seção 14 registra a execução posterior à limpeza dos testes e as decisões complementares de modelagem.
 
 - A entrega preserva as regras da seção 3 e a separação entre domínio, HTTP e PostgreSQL.
 - Os novos objetos têm uma responsabilidade explicável, estado final e até quatro atributos; os construtores recebem valores ou colaboradores e delegam a inicialização.
@@ -1349,3 +1427,82 @@ As próximas classes devem representar regras, valores, consultas, comandos ou t
 - Os registros imutáveis de leitura conservam seus valores, e novas operações recebem dados atuais quando esse é o contrato. Recursos JDBC não escapam para o domínio.
 - Os testes verificam comportamento e riscos reais, com causa e efeito observáveis. A quantidade de testes pode permanecer igual após uma refatoração bem coberta.
 - O registro distingue implementação, verificação e planejamento. Uma etapa pendente só muda de status depois de autorizada, executada e validada.
+
+## 14. Revisões e decisões complementares de 11 de novembro de 2026
+
+### 14.1. Revisão dos testes dos dois módulos
+
+A revisão abrangeu as 62 suítes JUnit dos módulos anêmico e rico. Foram removidos 11 casos redundantes, sendo dois do anêmico e nove do rico. As verificações de regras de negócio, precisão, rollback, concorrência e contratos HTTP foram preservadas.
+
+| Conjunto | Ajuste realizado |
+| --- | --- |
+| Roteamento HTTP | A verificação de PATCH incompatível na consulta de fatura foi concentrada em RotasDaAplicacaoRicaTest. |
+| Construção PostgreSQL | Foi removida uma verificação de construção sem acesso ao banco já exercitada por outro cenário com DataSourceSemConexao. |
+| Leitura de produtos | A consulta pela interface Produtos, a leitura de acentos e apóstrofo e a atualização observada pelo mesmo objeto foram reunidas em um cenário. |
+| Itens e cálculo da fatura | Foram removidas verificações repetidas de construção sem consulta e precisão fracionária já cobertas por CalculoFaturaTest. |
+| Precificação rica | Foram retiradas entradas repetidas de valores inválidos, arredondamento e venda inferior ao custo. Os cenários mais específicos conservam a verificação das mensagens e da ordem de validação. |
+| Precificação anêmica | Foram retirados dois parâmetros redundantes. Os testes restantes verificam o limite da margem e a preservação dos dados originais quando o cálculo é rejeitado. |
+
+A execução após a revisão apresentou os resultados abaixo.
+
+| Módulo | Testes sem banco | Suíte completa com PostgreSQL | Suítes na execução completa |
+| --- | --- | --- | --- |
+| precificacao-anemica | 82 | 157 | 9 |
+| precificacao-rica | 362 | 482 | 53 |
+
+Todos passaram, com zero falhas, erros ou casos ignorados. A suíte completa inclui os testes sem banco. A execução usou PostgreSQL 15.1 descartável e gerou os relatórios em target/surefire-integracao/20261111-013754183 dentro de cada módulo.
+
+Os números registrados nas etapas anteriores correspondem às respectivas execuções históricas. A execução descrita aqui é posterior à remoção dos casos redundantes.
+
+### 14.2. Análise complementar de Elegant Objects
+
+A revisão estática conferiu os métodos estáticos próprios, atributos, construtores, contratos e objetos usados na modelagem. O inventário do código de produção encontrou o main como único método estático próprio declarado. Os atributos de instância analisados são finais. A aplicação usa Strategy, Specification, composição e delegação.
+
+| Aspecto | Situação observada | Decisão ou encaminhamento |
+| --- | --- | --- |
+| Validação nos construtores | CalculoFatura verifica a composição e os produtos repetidos. Dinheiro, Percentual e outros valores protegem suas invariantes na construção. | O autor decidiu conservar essa abordagem. Essa decisão deve ser considerada ao descrever a relação com o capítulo sobre construtores sem processamento. |
+| Leitura JDBC na construção | ResultadoSqlDeCategoria, CategoriaDaLinha e ResultadoSqlDeCidade leem colunas e interpretam valores em construtores secundários. | Achado registrado para avaliação futura, considerando o tempo de vida do ResultSet e a tradução das falhas. |
+| Tamanho dos contratos | Fatura declara nove métodos e Produtos declara sete, incluindo conveniências e sobrecargas. | Avaliar responsabilidades e necessidade das conveniências em uma revisão futura. |
+| Contratos de comportamento | RegraDePrecificacao e Desconto permitem alternativas polimórficas. Precificacoes e CalculoFatura expõem operações por tipos concretos. | Avaliar interfaces quando houver uma necessidade concreta de substituição ou decoração do comportamento. |
+| Construtores primários e secundários | PgProdutos e DescontoReconstituido oferecem formas de construção que delegam ao primário. A relação entre quantidade de construtores e métodos varia. | Avaliar a utilidade de cada forma de construção e a centralização da inicialização. |
+| Representação e encapsulamento | ProdutoConstante e os records oferecem acesso aos valores materializados. | Avaliar a responsabilidade de cada tipo e o comportamento exigido pelos consumidores. |
+
+A conclusão das 34 etapas documenta as entregas e as verificações daquela rodada. A análise complementar explicita as escolhas que ainda diferem de uma aplicação estrita das recomendações do livro.
+
+As orientações do autor consultadas foram [construtor primário](https://www.yegor256.com/2015/05/28/one-primary-constructor.html), [construtores sem processamento](https://www.yegor256.com/2015/05/07/ctors-must-be-code-free.html), [interfaces e composição](https://www.yegor256.com/2014/11/20/seven-virtues-of-good-object.html) e [critérios de tamanho dos objetos](https://www.yegor256.com/2017/02/28/too-many-classes.html).
+
+### 14.3. Records com corpo vazio
+
+AlteracaoPrecificacao.Identidade agrupa codigo e codigoProduto. O compilador gera o construtor canônico, os campos finais, os acessores, equals, hashCode e toString. Esse record possui corpo vazio e aceita os códigos recebidos sem validação própria.
+
+Os records de entrada e saída HTTP representam o formato dos dados trocados com o cliente. Os records do domínio devem ser avaliados pelo significado dos valores, pelas invariantes e pelo comportamento necessário. O agrupamento de campos precisa ter uma responsabilidade justificável.
+
+A conversa registrou essa avaliação como um ponto de revisão futura. A decisão vigente conserva os construtores e suas validações atuais.
+
+### 14.4. Coleções Postman e comparação de equivalência
+
+As coleções disponíveis estão em documentacao/postman.
+
+| Coleção | Pastas | Requisições | baseUrl padrão |
+| --- | --- | --- | --- |
+| precificacao-anemica.postman_collection.json | 5 | 59 | http://localhost:8080 |
+| precificacao-rica.postman_collection.json | 6 | 75 | http://localhost:8081 |
+
+Os arquivos já contêm corpos JSON, verificações e captura dos códigos retornados. Cada coleção mantém suas próprias variáveis. A execução completa começa pela primeira requisição de preparação e segue a ordem das pastas. As requisições criam e alteram registros de exemplo.
+
+A sexta pasta da coleção rica acrescenta cenários de precisão, preços atuais e vínculos integrados. A equiparação das duas coleções foi sugerida e permanece pendente de implementação. As orientações de importação foram fornecidas ao autor, que apresentou as duas coleções carregadas no Postman.
+
+O executor verificacao/equivalencia.js usa a coleção rica nas duas APIs. Ele envia as requisições por HTTP, executa as verificações suportadas e compara status, campos, valores e ordenação. A comparação associa os códigos gerados aos mesmos cadastros e valida o formato das datas geradas antes de normalizá-las. Diferenças textuais das respostas de erro ficam registradas no relatório.
+
+O comparador depende de duas APIs em execução e de bancos vazios destinados à comparação. Seu alcance é o conjunto de cenários executados. As instruções de uso estão no [guia da comparação](../verificacao/README.md). A última comparação HTTP registrada continua sendo a execução da etapa 34, com 150 pares em duas rodadas por módulo.
+
+### 14.5. Próximos passos registrados
+
+| Ordem | Trabalho | Situação |
+| --- | --- | --- |
+| 1 | Conservar as validações atuais nos construtores, conforme decisão do autor. | Decisão definida. |
+| 2 | Avaliar records do domínio e a utilidade dos agrupamentos de valores. | Revisão sugerida. |
+| 3 | Avaliar tamanho das interfaces, abstrações e leitores JDBC apontados na análise complementar. | Revisão sugerida. |
+| 4 | Equiparar os cenários das coleções Postman, incluindo os casos adicionais no arquivo do anêmico. | Melhoria sugerida. |
+
+Cada implementação deve manter as regras dos dois modelos e terminar com revisão do código e verificação dos comportamentos afetados. Os testes devem demonstrar resultados observáveis e riscos concretos.

@@ -10,14 +10,13 @@ import org.takes.facets.fork.RqRegex;
 import org.takes.facets.fork.TkRegex;
 import org.takes.rs.RsWithStatus;
 import tools.jackson.core.JacksonException;
-import tools.jackson.databind.json.JsonMapper;
 
 /** Adapta o pedido compartilhado para uma simulação sem persistência. */
 public final class TkSimulacaoFatura implements TkRegex {
 
   private final Faturas faturas;
   private final Produtos produtos;
-  private final JsonMapper json;
+  private final JsonDeFatura json;
   private final RespostasFatura respostas;
 
   /**
@@ -27,8 +26,8 @@ public final class TkSimulacaoFatura implements TkRegex {
   public TkSimulacaoFatura(Faturas faturas, Produtos produtos) {
     this.faturas = faturas;
     this.produtos = produtos;
-    this.json = PedidoFatura.json();
-    this.respostas = new RespostasFatura(this.json);
+    this.json = new JsonDeFatura();
+    this.respostas = this.json.respostas();
   }
 
   @Override
@@ -40,7 +39,7 @@ public final class TkSimulacaoFatura implements TkRegex {
     String caminho = requisicao.matcher().group();
     PedidoFatura entrada;
     try {
-      entrada = this.json.readValue(corpo.bytes(), PedidoFatura.class);
+      entrada = this.json.pedido(corpo);
     } catch (JacksonException | IOException falha) {
       return this.respostas.formatoInvalido(caminho);
     }

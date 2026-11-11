@@ -1,0 +1,86 @@
+{
+  "etapa": 34,
+  "data": "2026-11-10",
+  "status": "concluida",
+  "baseGit": "8e2e01a2b373aad5dab0fa21d7ccf31fccc7823e",
+  "observacaoCheckout": "A execução inclui alterações locais da revisão de modelagem.",
+  "ambiente": {
+    "java": "24.0.2",
+    "maven": "3.9.9",
+    "postgres": "15.1",
+    "node": "20.17.0",
+    "bancoDesenvolvimentoUtilizado": false
+  },
+  "junit": [
+    {
+      "modulo": "precificacao-rica",
+      "modo": "unitario",
+      "suites": 38,
+      "casos": 369,
+      "falhas": 0,
+      "erros": 0,
+      "ignorados": 0,
+      "diretorio": "precificacao-rica/target/surefire-reports"
+    },
+    {
+      "modulo": "precificacao-rica",
+      "modo": "completo",
+      "suites": 53,
+      "casos": 491,
+      "falhas": 0,
+      "erros": 0,
+      "ignorados": 0,
+      "diretorio": "precificacao-rica/target/surefire-integracao/20261111-012930803"
+    }
+  ],
+  "http": {
+    "paresComparados": 150,
+    "diferencasErro": 10,
+    "falha": null,
+    "relatorio": "precificacao-rica/target/comparacao-modelagem-etapa-34.json",
+    "execucoes": [
+      {
+        "modelo": "anemico",
+        "rodada": 1,
+        "requisicoes": 75,
+        "verificacoesPmTest": 108
+      },
+      {
+        "modelo": "rico",
+        "rodada": 1,
+        "requisicoes": 75,
+        "verificacoesPmTest": 108
+      },
+      {
+        "modelo": "anemico",
+        "rodada": 2,
+        "requisicoes": 75,
+        "verificacoesPmTest": 108
+      },
+      {
+        "modelo": "rico",
+        "rodada": 2,
+        "requisicoes": 75,
+        "verificacoesPmTest": 108
+      }
+    ]
+  },
+  "sha256": {
+    "precificacao-rica/target/comparacao-modelagem-etapa-34.json": "78de1508db80eb14a3e623110acd537611b064cd7b5fdfdf6918c1eaecd1acbd",
+    "documentacao/postman/precificacao-rica.postman_collection.json": "d228a35e7360ea8ea3cfcd9f207b36f7373f5ad650747ab1fbc0df03c39f3ca6",
+    "verificacao/equivalencia.js": "2fb9b5b703d35842c5aebe703258ecf878907c44577f1ffe480d097b8fdc3485",
+    "precificacao-rica/target/precificacao-rica-1.0.0-SNAPSHOT.jar": "fa7274d43fdf699c08eeb2dca59c35b6fc69d4127570b44b1d689cfc418130b6",
+    "precificacao-anemica/target/precificacao-anemica-1.0.0-SNAPSHOT.jar": "2871f44afd2016987c62ef327425f7df77e5214d2483490fdbc7885f2352acf4"
+  },
+  "criterioContagem": "O perfil completo inclui os unitários. Os XML unitários foram selecionados pela data da execução e a soma conferida com o log.",
+  "inventario": {
+    "metodosEstaticosProprios": [
+      "br.com.modelagemdominio.rico.AplicacaoRica.main"
+    ],
+    "dtoEntradaAcimaDeQuatroAtributos": {
+      "TkCadastroProduto.Cadastro": 6,
+      "TkCadastroCliente.Cadastro": 5,
+      "EnderecoJson": 6
+    }
+  }
+}

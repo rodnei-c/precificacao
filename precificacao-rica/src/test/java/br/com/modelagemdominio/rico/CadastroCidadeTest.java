@@ -34,7 +34,7 @@ class CadastroCidadeTest {
   @Tag("integracao")
   void normalizaUfEPermiteOMesmoNomeSomenteEmUfDistinta() throws Exception {
     var banco = bancoDeTeste();
-    Take api = AplicacaoRica.rotas(banco);
+    Take api = new RotasDaAplicacaoRica(banco).rotas();
     String inicio = "São João d'Aliança " + UUID.randomUUID();
     String nome = inicio + "x".repeat(200 - inicio.length());
 
@@ -54,7 +54,7 @@ class CadastroCidadeTest {
   @ParameterizedTest
   @MethodSource("dadosInvalidos")
   void validaNomeEUfAntesDeAbrirConexao(String corpo, String detalhe) throws Exception {
-    Take api = AplicacaoRica.rotas(new DataSourceSemConexao());
+    Take api = new RotasDaAplicacaoRica(new DataSourceSemConexao()).rotas();
 
     assertEquals(detalhe, this.resposta(400, enviar(api, corpo)).path("detail").asString());
   }
@@ -76,7 +76,7 @@ class CadastroCidadeTest {
 
   @Test
   void recusaNomeAcimaDoLimiteAntesDeAbrirConexao() throws Exception {
-    Take api = AplicacaoRica.rotas(new DataSourceSemConexao());
+    Take api = new RotasDaAplicacaoRica(new DataSourceSemConexao()).rotas();
 
     var problema = this.resposta(400, enviar(api, this.corpo("x".repeat(201), "PR")));
 
@@ -86,7 +86,7 @@ class CadastroCidadeTest {
   @ParameterizedTest
   @ValueSource(strings = {"{\"nome\":\"Curitiba\",\"uf\":\"PR\",\"codigo\":1}", "null"})
   void recusaCorpoInvalidoAntesDeAbrirConexao(String corpo) throws Exception {
-    Take api = AplicacaoRica.rotas(new DataSourceSemConexao());
+    Take api = new RotasDaAplicacaoRica(new DataSourceSemConexao()).rotas();
 
     var problema = this.resposta(400, enviar(api, corpo));
 
@@ -98,7 +98,7 @@ class CadastroCidadeTest {
     var banco = new HikariDataSource();
     banco.close();
 
-    var problema = this.resposta(503, enviar(AplicacaoRica.rotas(banco), this.corpo("Curitiba", "PR")));
+    var problema = this.resposta(503, enviar(new RotasDaAplicacaoRica(banco).rotas(), this.corpo("Curitiba", "PR")));
 
     assertEquals("Persistência indisponível", problema.path("title").asString());
   }
@@ -107,7 +107,7 @@ class CadastroCidadeTest {
   @Tag("integracao")
   void falhaDeOutraRestricaoNaoViraDuplicidadeENaoAlteraCidadesExistentes() throws Exception {
     var banco = bancoDeTeste();
-    Take api = AplicacaoRica.rotas(banco);
+    Take api = new RotasDaAplicacaoRica(banco).rotas();
     var cidades = new PgCidades(banco);
     String sufixo = UUID.randomUUID().toString().replace("-", "");
     String nomePreservado = "Cidade preservada " + sufixo;

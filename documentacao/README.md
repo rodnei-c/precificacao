@@ -6,7 +6,7 @@ O registro de implementação e testes dos nove passos de clientes, cidades e ca
 
 O [estado atual e plano do modelo rico](Documentacao-e-Plano-Modelo-Rico.md) registra as 21 etapas concluídas em 10 de novembro de 2026. A [validação final](Validacao-Equivalencia-Modelos.md) reúne os resultados reais dos testes e da comparação por HTTP, incluindo as diferenças de mensagens de erro. A [coleção Postman do rico](postman/precificacao-rica.postman_collection.json) contém o fluxo completo com dados novos e códigos gerados. As instruções para repetir a comparação estão em [verificacao](../verificacao/README.md).
 
-O plano do rico foi consolidado após a etapa 15 da revisão de modelagem. Ele distingue as 21 entregas funcionais concluídas das 15 correções já aplicadas com os conceitos de Elegant Objects e apresenta o [plano de continuidade](Documentacao-e-Plano-Modelo-Rico.md#proximas-etapas-modelagem), com etapas 16 a 34 propostas. Os próximos ajustes abrangem objetos com comportamento, invariantes, imutabilidade, composição, auxiliares estáticos, Specification e representações HTTP. A etapa 16 aguarda autorização individual. A proposta de desconto mínimo de R$ 200 permanece descartada.
+O plano do rico registra 21 entregas funcionais e 34 etapas concluídas de revisão de modelagem. O [registro final](Validacao-Equivalencia-Modelos.md#validacao-final-modelagem) reúne os resultados dos testes, a comparação HTTP e exemplos de código para o estudo. A proposta de desconto mínimo de R$ 200 permanece descartada.
 
 ## Planejamento atual
 

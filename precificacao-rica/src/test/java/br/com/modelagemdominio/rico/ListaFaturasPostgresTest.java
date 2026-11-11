@@ -53,6 +53,7 @@ class ListaFaturasPostgresTest {
       assertEquals(lista(), leitura.obter("codigoCliente=" + clienteSemFaturas, 200));
       assertEquals(lista(), leitura.obter("codigoCliente=" + Long.MAX_VALUE, 200));
       assertEquals(todos, leitura.obter("inicio=&fim=+++&codigoCliente=", 200));
+      assertEquals(todos, leitura.obter("inicio&inicio=2026-11-05&fim=+++&fim=2026-11-01", 200));
       assertEquals(lista(fimA, inicio), leitura.obter(
         "%69nicio=2026%2D11%2D01&fim=2026-11-03&codigoCliente=%20" + cenario.cliente + "%20", 200));
 
@@ -151,7 +152,7 @@ class ListaFaturasPostgresTest {
             assertFalse(resultado.getBoolean("clientes"));
           }
           var sql = new SqlContado(banco);
-          return new Leitura(AplicacaoRica.rotas(sql.banco()), sql, cenario.banco, papel);
+          return new Leitura(new RotasDaAplicacaoRica(sql.banco()).rotas(), sql, cenario.banco, papel);
         } catch (Exception | AssertionError falha) {
           try {
             limpar(cenario.banco, papel);

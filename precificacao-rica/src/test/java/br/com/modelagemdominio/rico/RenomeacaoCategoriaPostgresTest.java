@@ -79,7 +79,7 @@ class RenomeacaoCategoriaPostgresTest {
   void falhaDuranteAtualizacaoNaoViraNomeDuplicadoENaoAlteraCadastro() throws Exception {
     var banco = bancoDeTeste();
     var categorias = new PgCategorias(banco);
-    Take api = AplicacaoRica.rotas(banco);
+    Take api = new RotasDaAplicacaoRica(banco).rotas();
     var json = new JsonMapper();
     String sufixo = UUID.randomUUID().toString().replace("-", "");
     String funcao = "falha_renomeacao_" + sufixo;

@@ -58,8 +58,9 @@ final class AlteracaoSqlDePrecificacao {
       return produto;
     }
 
-    ProdutoConstante atualizado = this.atualizar(conexao, codigo, nova);
-    registrar(conexao, codigo, anterior, atualizado.precificacao());
+    ProdutoConstante atualizado = new AtualizacaoDaPrecificacao(conexao, this.produtoPorCodigo)
+      .atualizar(codigo, nova);
+    new RegistroDoHistoricoDePrecificacao(conexao).registrar(codigo, anterior, atualizado.precificacao());
     return atualizado;
   }
 
@@ -77,45 +78,5 @@ final class AlteracaoSqlDePrecificacao {
         return new ResultadoSqlDeProduto(resultado, this.produtoPorCodigo).produto();
       }
     }
-  }
-
-  private ProdutoConstante atualizar(Connection conexao, long codigo, Precificacao nova) throws SQLException {
-    try (PreparedStatement atualizacao = conexao.prepareStatement("""
-      UPDATE public.produto SET custo = ?, preco_venda = ?, percentual = ? WHERE codigo = ?
-      RETURNING codigo, nome, custo, preco_venda, percentual, modalidade_precificacao, categoria_codigo
-      """)) {
-      informarValores(atualizacao, 1, nova);
-      atualizacao.setLong(4, codigo);
-      try (ResultSet resultado = atualizacao.executeQuery()) {
-        if (!resultado.next()) {
-          throw new SQLException("A alteração não retornou o produto bloqueado.");
-        }
-        return new ResultadoSqlDeProduto(resultado, this.produtoPorCodigo).produto();
-      }
-    }
-  }
-
-  private static void registrar(Connection conexao, long codigo, Precificacao anterior, Precificacao nova)
-    throws SQLException {
-    try (PreparedStatement insercao = conexao.prepareStatement("""
-      INSERT INTO public.historico_precificacao
-        (produto_codigo, custo_anterior, preco_venda_anterior, percentual_anterior,
-        custo_novo, preco_venda_novo, percentual_novo)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
-      """)) {
-      insercao.setLong(1, codigo);
-      informarValores(insercao, 2, anterior);
-      informarValores(insercao, 5, nova);
-      if (insercao.executeUpdate() != 1) {
-        throw new SQLException("A alteração não gerou o registro de histórico.");
-      }
-    }
-  }
-
-  private static void informarValores(PreparedStatement comando, int inicio, Precificacao precificacao)
-    throws SQLException {
-    comando.setBigDecimal(inicio, precificacao.custo().valor());
-    comando.setBigDecimal(inicio + 1, precificacao.precoVenda().valor());
-    comando.setBigDecimal(inicio + 2, precificacao.percentual().valor());
   }
 }

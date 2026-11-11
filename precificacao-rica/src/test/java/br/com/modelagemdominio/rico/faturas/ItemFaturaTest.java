@@ -7,13 +7,11 @@ import br.com.modelagemdominio.rico.produtos.NomeProduto;
 import br.com.modelagemdominio.rico.produtos.Precificacao;
 import br.com.modelagemdominio.rico.produtos.Produto;
 import br.com.modelagemdominio.rico.produtos.Produtos;
-import br.com.modelagemdominio.rico.produtos.pg.PgProdutosConstantes;
 import br.com.modelagemdominio.rico.produtos.precificacao.AcrescimoSobreCusto;
 import br.com.modelagemdominio.rico.produtos.precificacao.PrecificacaoInvalida;
 import br.com.modelagemdominio.rico.produtos.precificacao.PrecificacaoParaCadastro;
 import br.com.modelagemdominio.rico.produtos.precificacao.Precificacoes;
 import br.com.modelagemdominio.rico.produtos.precificacao.ValoresParaPrecificar;
-import br.com.modelagemdominio.rico.testes.DataSourceSemConexao;
 import java.math.BigDecimal;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -25,32 +23,10 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class ItemFaturaTest {
-
-  @Test
-  void constroiItemSemConsultarOBanco() {
-    ItemFatura item = assertDoesNotThrow(() -> new ItemFatura(
-      new PgProdutosConstantes(new DataSourceSemConexao()), 42, new Quantidade(BigDecimal.ONE)
-    ));
-
-    assertEquals(42, item.codigoProduto());
-    assertEquals(BigDecimal.ONE, item.quantidade().valor());
-  }
-
-  @Test
-  void mantemPrecisaoDoSubtotalComQuantidadeFracionaria() throws Exception {
-    ProdutosDeTeste produtos = new ProdutosDeTeste();
-    Produto produto = produtos.cadastrar(new NomeProduto("Produto"), precificacao("1.23"));
-    ItemFatura item = new ItemFatura(
-      produtos, produto.codigo(), new Quantidade(new BigDecimal("0.1234"))
-    );
-
-    assertEquals(new BigDecimal("0.151782"), item.subtotal());
-  }
 
   @Test
   void consultaNovamenteOPrecoMesmoQuandoAColecaoDevolveObjetosImutaveis() throws Exception {

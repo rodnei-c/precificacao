@@ -270,7 +270,7 @@ class ConsultaFaturaPostgresTest {
         assertEquals("on", resultado.getString(1));
       }
       var sql = new SqlContado(banco);
-      return new Consulta(AplicacaoRica.rotas(sql.banco()), sql);
+      return new Consulta(new RotasDaAplicacaoRica(sql.banco()).rotas(), sql);
     }
 
     JsonNode obter(long codigo, int status) throws Exception {

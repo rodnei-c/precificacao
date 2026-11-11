@@ -21,6 +21,7 @@ import org.takes.rq.RqFake;
 import org.takes.rs.RsPrint;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class FiltroProdutosUtf8Test {
@@ -51,11 +52,16 @@ class FiltroProdutosUtf8Test {
       var api = new TkFork(new FkRegex("/api/produtos", new TkListaProdutos(new ProdutosObservados(recebidos))));
       var resposta = new RsPrint(api.act(new RqFake("GET", "/api/produtos?"
         + "%6Eome=Caf%C3%A9%20%2B%20%C3%81gua%20%25_%20%26%20%3D"
-        + "&modalidadePrecificacao=ACRESCIMO_SOBRE_CUSTO&categoria=7")));
+        + "&modalidadePrecificacao=ACRESCIMO_SOBRE_CUSTO&categoria=+7+&categoria=invalida")));
       assertEquals("200", resposta.head().iterator().next().split(" ", 3)[1]);
       assertEquals(Optional.of("Café + Água %_ & ="), recebidos.get().nome());
       assertEquals(Optional.of(ModalidadePrecificacao.ACRESCIMO_SOBRE_CUSTO), recebidos.get().modalidade());
       assertEquals(Optional.of(new CodigoCategoria(7)), recebidos.get().categoria());
+
+      var filtros = recebidos.get();
+      var invalida = new RsPrint(api.act(new RqFake("GET", "/api/produtos?categoria=++&categoria=7")));
+      assertEquals("400", invalida.head().iterator().next().split(" ", 3)[1]);
+      assertSame(filtros, recebidos.get(), "A listagem não deve executar com o primeiro filtro inválido.");
     }
   }
 

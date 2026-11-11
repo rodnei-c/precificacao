@@ -8,7 +8,9 @@ import br.com.modelagemdominio.rico.produtos.ModalidadePrecificacao;
 import br.com.modelagemdominio.rico.produtos.Precificacao;
 import br.com.modelagemdominio.rico.produtos.Produto;
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonUnwrapped;
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import org.takes.Response;
@@ -27,28 +29,19 @@ final class RespostasProduto {
     }
 
     Response produto(Produto produto) throws FalhaProduto {
-        return this.json(dadosDoProduto(produto));
+        return this.json(new ProdutoResposta(produto));
     }
 
     Response lista(List<Produto> produtos) throws FalhaProduto {
         List<ProdutoResposta> dados = new ArrayList<>(produtos.size());
         for (Produto produto : produtos) {
-            dados.add(dadosDoProduto(produto));
+            dados.add(new ProdutoResposta(produto));
         }
         return this.json(dados);
     }
 
     Response historico(List<AlteracaoPrecificacao> alteracoes) {
-        return this.json(alteracoes);
-    }
-
-    private static ProdutoResposta dadosDoProduto(Produto produto) throws FalhaProduto {
-        Precificacao precificacao = produto.precificacao();
-        return new ProdutoResposta(
-            produto.codigo(), produto.nome(), precificacao.custo().valor(),
-            precificacao.precoVenda().valor(), precificacao.percentual().valor(),
-            precificacao.modalidade(), produto.codigoCategoria().map(CodigoCategoria::valor).orElse(null)
-        );
+        return this.json(alteracoes.stream().map(AlteracaoResposta::new).toList());
     }
 
     private Response json(Object dados) {
@@ -77,14 +70,55 @@ final class RespostasProduto {
         return this.problemas.resposta(status, titulo, detalhe, caminho);
     }
 
+    private record AlteracaoResposta(
+        @JsonUnwrapped IdentidadeAlteracaoResposta identidade, LocalDateTime dataAlteracao,
+        ValoresResposta anteriores, ValoresResposta novos
+    ) {
+
+        AlteracaoResposta(AlteracaoPrecificacao alteracao) {
+            this(new IdentidadeAlteracaoResposta(alteracao.identidade()), alteracao.dataAlteracao(),
+                new ValoresResposta(alteracao.anteriores()), new ValoresResposta(alteracao.novos()));
+        }
+    }
+
+    private record IdentidadeAlteracaoResposta(long codigo, long codigoProduto) {
+
+        IdentidadeAlteracaoResposta(AlteracaoPrecificacao.Identidade identidade) {
+            this(identidade.codigo(), identidade.codigoProduto());
+        }
+    }
+
+    private record ValoresResposta(BigDecimal custo, BigDecimal precoVenda, BigDecimal percentual) {
+
+        ValoresResposta(AlteracaoPrecificacao.Valores valores) {
+            this(valores.custo(), valores.precoVenda(), valores.percentual());
+        }
+    }
+
     private record ProdutoResposta(
         long codigo,
         String nome,
-        BigDecimal custo,
-        BigDecimal precoVenda,
-        BigDecimal percentual,
-        ModalidadePrecificacao modalidadePrecificacao,
+        @JsonUnwrapped PrecificacaoResposta precificacao,
         @JsonInclude(JsonInclude.Include.NON_NULL) Long codigoCategoria
     ) {
+
+        ProdutoResposta(Produto produto) throws FalhaProduto {
+            this(produto, produto.precificacao());
+        }
+
+        private ProdutoResposta(Produto produto, Precificacao precificacao) throws FalhaProduto {
+            this(produto.codigo(), produto.nome(), new PrecificacaoResposta(precificacao),
+                produto.codigoCategoria().map(CodigoCategoria::valor).orElse(null));
+        }
+    }
+
+    private record PrecificacaoResposta(
+        BigDecimal custo, BigDecimal precoVenda, BigDecimal percentual, ModalidadePrecificacao modalidadePrecificacao
+    ) {
+
+        PrecificacaoResposta(Precificacao precificacao) {
+            this(precificacao.custo().valor(), precificacao.precoVenda().valor(),
+                precificacao.percentual().valor(), precificacao.modalidade());
+        }
     }
 }

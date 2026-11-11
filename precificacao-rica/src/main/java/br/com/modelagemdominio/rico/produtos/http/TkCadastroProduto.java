@@ -67,10 +67,9 @@ public final class TkCadastroProduto implements TkRegex {
         Optional<CodigoCategoria> codigoCategoria;
         PrecificacaoParaCadastro precificacao;
         try {
-            nome = new NomeProduto(entrada.nome());
-            codigoCategoria = Optional.ofNullable(entrada.codigoCategoria()).map(CodigoCategoria::new);
-            var valores = new ValoresParaPrecificar(entrada.custo(), entrada.precoVenda(), entrada.percentual());
-            precificacao = valores.precificacao(entrada.modalidadePrecificacao());
+            nome = entrada.nomeDoProduto();
+            codigoCategoria = entrada.categoria();
+            precificacao = entrada.precificacao();
         } catch (PrecificacaoInvalida | IllegalArgumentException falha) {
             return this.respostas.problema(400, "Dados inválidos", falha.getMessage(), caminho);
         }
@@ -94,5 +93,18 @@ public final class TkCadastroProduto implements TkRegex {
         ModalidadePrecificacao modalidadePrecificacao,
         BigDecimal codigoCategoria
     ) {
+
+        NomeProduto nomeDoProduto() {
+            return new NomeProduto(this.nome);
+        }
+
+        Optional<CodigoCategoria> categoria() {
+            return Optional.ofNullable(this.codigoCategoria).map(CodigoCategoria::new);
+        }
+
+        PrecificacaoParaCadastro precificacao() throws PrecificacaoInvalida {
+            var valores = new ValoresParaPrecificar(this.custo, this.precoVenda, this.percentual);
+            return valores.precificacao(this.modalidadePrecificacao);
+        }
     }
 }

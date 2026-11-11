@@ -55,7 +55,7 @@ class CadastroClientePostgresTest {
   void aceitaLimitesDoCadastroENormalizaDadosQueSaoLidosDoBanco() throws Exception {
     var banco = bancoDeTeste();
     var sql = new SqlContado(banco);
-    Take api = AplicacaoRica.rotas(sql.banco());
+    Take api = new RotasDaAplicacaoRica(sql.banco()).rotas();
     String sufixo = UUID.randomUUID().toString().replace("-", "");
     String nomeCidade = "Cidade dos limites " + sufixo;
     String inicioEmail = "Cliente-" + sufixo;
@@ -106,7 +106,7 @@ class CadastroClientePostgresTest {
   @CsvSource({"23505, outra_unicidade", "23503, outra_referencia"})
   void falhaDeOutraRestricaoNaoViraDuplicidadeOuCidadeAusente(String estado, String restricao) throws Exception {
     var banco = bancoDeTeste();
-    Take api = AplicacaoRica.rotas(banco);
+    Take api = new RotasDaAplicacaoRica(banco).rotas();
     String sufixo = UUID.randomUUID().toString().replace("-", "");
     String emailAnterior = "anterior-" + sufixo + "@example.com";
     String emailNovo = "rejeitado-" + sufixo + "@example.com";
