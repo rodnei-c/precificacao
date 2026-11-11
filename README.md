@@ -1,6 +1,6 @@
 # Modelagem de domínio
 
-Projeto para comparar duas implementações funcionalmente equivalentes de um sistema de precificação e faturamento. A pesquisa tem a manutenibilidade como foco principal.
+Projeto para comparar duas implementações dos mesmos casos de uso de precificação e faturamento. A pesquisa tem a manutenibilidade como foco principal.
 
 ## Estrutura
 
@@ -15,24 +15,34 @@ precificacao/
 ├── precificacao-rica/
 │   ├── pom.xml
 │   └── src/
-└── documentacao/
+├── documentacao/
+└── verificacao/
 ~~~
 
 O projeto Maven raiz é pai e agregador dos dois módulos. Cada módulo gera seu próprio JAR e não depende do outro. As regras de negócio são implementadas separadamente; requisitos e casos de verificação podem ser comuns, mas não existe módulo compartilhado de domínio.
 
 ## Estado atual
 
-O módulo precificacao-anemica expõe cadastro, listagem com filtros, consulta, alteração de precificação, histórico de produtos e gestão de categorias, cidades e clientes por HTTP, com Spring Boot 4.1.2, JDBC, PostgreSQL e migração Flyway. Permite renomear categorias, filtrar cidades por nome e UF e consultar e atualizar os contatos e o endereço de um cliente. Os controllers tratam HTTP, os services concentram cálculos e validações, e os repositories executam o acesso ao banco. Os modelos permanecem sem regras de negócio.
+Os dois módulos expõem APIs HTTP com estas funcionalidades:
 
-O módulo precificacao-rica usa Takes e oferece as operações de produtos, categorias, cidades e clientes na porta 8081, com o banco separado `precificacao_rica`. A coleção de produtos consulta os dados em uma leitura SQL e devolve um decorador imutável. Na inicialização, a API cria o banco ausente quando habilitado e aplica as migrações antes de abrir a porta HTTP. A configuração, a execução e os testes estão descritos [nas instruções do módulo](precificacao-rica/README.md).
+- Produtos: cadastro, consulta, listagem com filtros, alteração de precificação, vínculo com categoria e histórico de alterações.
+- Categorias: cadastro, listagem e renomeação.
+- Cidades: cadastro e listagem com filtros por nome e UF.
+- Clientes: cadastro, listagem, consulta e atualização parcial dos contatos e do endereço.
+- Faturas: cadastro, simulação sem gravação, consulta e listagem com filtros por período e cliente.
 
-O rico também cadastra faturas por `POST /api/faturas`, consulta por `GET /api/faturas/{codigo}`, simula por `POST /api/faturas/simulacao` e lista por `GET /api/faturas`, com filtros por período e cliente. Itens são obrigatórios; desconto, cliente e forma de pagamento são opcionais. Cabeçalho e itens são gravados na mesma transação. A consulta usa os preços atuais e preserva o desconto original. A simulação reutiliza as validações e os cálculos do cadastro sem gravar dados ou gerar código. O cálculo mantém a precisão até o total final; os itens gravam a referência ao produto e a quantidade. A listagem retorna resumos sem carregar preços ou recalcular faturas.
+| Módulo | Organização | Porta padrão | Banco padrão |
+| --- | --- | --- | --- |
+| [Anêmico](precificacao-anemica/README.md) | Spring Boot 4.1.2 e JDBC; controllers tratam HTTP, services concentram as regras e repositories acessam o banco. | `8080` | `precificacao_anemica` |
+| [Rico](precificacao-rica/README.md) | Takes e objetos com comportamento; os pacotes `http` e `pg` adaptam as entradas, as respostas e a persistência. | `8081` | `precificacao_rica` |
 
-O módulo anêmico cria e simula faturas, lista faturas por período e consulta faturas pelo código. A consulta recalcula os valores com os preços atuais, usando os itens e o desconto original gravados em PostgreSQL.
+Ambos utilizam PostgreSQL, criam o banco ausente quando essa opção está habilitada e aplicam as migrações Flyway ao iniciar. O anêmico possui oito migrações e o rico, dez; os bancos e seus históricos são independentes.
 
-A implementação anêmica executa os testes unitários por padrão. A validação completa usa `mvn -s configuracao-maven.xml -pl precificacao-anemica -Pintegracao test`, exige as variáveis de PostgreSQL e reprova testes ignorados ou classes de integração ausentes. Consulte [as instruções da API](precificacao-anemica/README.md#testes) para configurar o banco, iniciar o servidor e importar os exemplos no Postman. As etapas implementadas e os cenários executados estão no [registro de validação do plano](documentacao/Validacao-Plano-Anemico.md).
+As faturas exigem itens com quantidades positivas, inclusive fracionárias. Desconto, cliente e forma de pagamento são opcionais. O cadastro grava cabeçalho e itens na mesma transação. A consulta usa os preços atuais dos produtos e preserva o desconto original; a simulação calcula sem gravar dados ou gerar código. Somente o total final da fatura é arredondado.
 
-O rico também executa somente testes sem banco por padrão. Para a suíte completa, configure `RICO_BANCO_TESTE_URL`, `RICO_BANCO_CRIACAO_TESTE_URL`, `RICO_BANCO_TESTE_USUARIO` e `RICO_BANCO_TESTE_SENHA` e execute `mvn -s configuracao-maven.xml -pl precificacao-rica -Pintegracao test`. O perfil aplica as migrações no banco de testes indicado e exige todos os casos obrigatórios, sem ignorados. Os testes de criação precisam de um servidor exclusivo com usuário administrativo. A configuração está nas [instruções de testes do rico](precificacao-rica/README.md#testes), e o andamento está no [plano do rico](documentacao/Documentacao-e-Plano-Modelo-Rico.md).
+A forma de pagamento é informativa no código atual: não acrescenta taxa ao total. A taxa na simulação é o tema da [atividade de manutenção](documentacao/Atividade-Taxa-por-Forma-de-Pagamento.md), ainda a implementar pelos participantes.
+
+Existem diferenças pontuais entre os modelos. Por exemplo, no PATCH de cliente, telefone em branco é tratado como remoção no anêmico e rejeitado no rico; ambos aceitam `null` para remover o telefone. As respostas de erro também podem ter textos diferentes. A comparação automatizada verifica os cenários presentes na coleção, sem afirmar equivalência para toda entrada possível.
 
 ## Compilar
 
@@ -55,22 +65,58 @@ A configuração de Maven incluída permite usar o Maven Central neste projeto s
 
 ## Executar
 
-Configure JAVA_HOME para um JDK compatível, mantenha o servidor PostgreSQL em execução e defina DB_URL, DB_USER e DB_PASSWORD conforme as instruções da API. O módulo anêmico cria o banco configurado caso ele não exista e, em seguida, aplica as migrações. A primeira criação exige um usuário com permissão CREATEDB. Depois:
+Os comandos abaixo partem da raiz do repositório. Configure `JAVA_HOME` para um JDK compatível e mantenha o servidor PostgreSQL em execução. A primeira criação de cada banco exige um usuário com permissão `CREATEDB`.
+
+Para o anêmico, crie `precificacao-anemica/.env.anemico` com a senha do PostgreSQL:
+
+~~~properties
+DB_PASSWORD=sua-senha-local
+~~~
+
+Para o rico, crie `.env.rico` na raiz:
+
+~~~properties
+RICO_DB_USER=postgres
+DB_PASSWORD=sua-senha-local
+~~~
+
+Esses arquivos locais são ignorados pelo Git. As variáveis de ambiente têm prioridade sobre os valores dos arquivos. Os READMEs dos módulos detalham as opções de conexão e a execução pelo IntelliJ.
+
+Após compilar, inicie cada API em um terminal:
 
 ~~~powershell
 & "$env:JAVA_HOME\bin\java.exe" -jar precificacao-anemica/target/precificacao-anemica-1.0.0-SNAPSHOT.jar
 ~~~
 
-A API atende em http://localhost:8080.
+~~~powershell
+& "$env:JAVA_HOME\bin\java.exe" -jar precificacao-rica/target/precificacao-rica-1.0.0-SNAPSHOT.jar
+~~~
+
+Os endereços padrão são `http://localhost:8080` e `http://localhost:8081`, respectivamente. O [Compose](compose.yml) pode fornecer um PostgreSQL local; ele cria inicialmente o banco do anêmico, e o rico prepara seu próprio banco ao iniciar.
+
+## Testes
+
+Por padrão, os dois módulos executam somente testes sem PostgreSQL:
+
+~~~powershell
+mvn -s configuracao-maven.xml test
+~~~
+
+O perfil `integracao` executa a suíte completa, incluindo os casos sem banco. Configure antes as quatro variáveis de teste de cada módulo, conforme as [instruções do anêmico](precificacao-anemica/README.md#testes) e as [instruções do rico](precificacao-rica/README.md#testes). Os testes de criação exigem um servidor PostgreSQL exclusivo e um usuário administrativo.
+
+~~~powershell
+mvn -s configuracao-maven.xml -pl precificacao-anemica -Pintegracao test
+mvn -s configuracao-maven.xml -pl precificacao-rica -Pintegracao test
+~~~
+
+O perfil verifica a presença dos casos obrigatórios e rejeita falhas, testes ignorados e opções que pulem parte da suíte. Consulte os relatórios gerados em cada execução para obter as contagens atuais.
 
 ## Abrir na IDE
 
 Importe o pom.xml da raiz como projeto Maven. A IDE deve reconhecer os dois módulos. Se a IDE utilizar o Nexus corporativo, selecione configuracao-maven.xml como configuração do Maven deste projeto.
 
-## Continuidade
+## Documentação e comparação
 
-As 21 etapas do plano do rico foram concluídas. A [validação de equivalência](documentacao/Validacao-Equivalencia-Modelos.md) registra os fluxos comparados, os testes e as diferenças de mensagens de erro. A [coleção Postman do rico](documentacao/postman/precificacao-rica.postman_collection.json) contém 75 requisições com preparação dos dados e códigos gerados. O [executor local](verificacao/README.md) permite repetir a comparação por HTTP.
+A [documentação do estudo](documentacao/README.md) reúne a atividade de manutenção, as coleções Postman e as evidências disponíveis. A coleção do anêmico contém 59 requisições; a do rico, 75. Os códigos dos cadastros são guardados nas variáveis das coleções. Confira se um ambiente selecionado no Postman está sobrescrevendo `baseUrl`.
 
-A proposta de desconto percentual somente a partir de R$ 200,00 foi descartada pelo usuário. A revisão de modelagem começou pelos objetos de valor do rico; os próximos ajustes dependem de aprovação entre as etapas, conforme o [registro do rico](documentacao/Documentacao-e-Plano-Modelo-Rico.md#12-revisão-de-modelagem--uma-etapa-por-vez).
-
-Os casos de uso, diagramas e registros de comparação ficam em documentacao.
+O [executor local](verificacao/README.md) compara as respostas dos dois módulos por HTTP. As instruções detalham a preparação das APIs, a execução da coleção e a leitura dos resultados.

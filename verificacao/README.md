@@ -1,6 +1,6 @@
 # Comparação local por HTTP
 
-`equivalencia.js` executa a coleção rica contra os dois módulos e compara suas respostas. Usa Node.js 12 ou superior e somente módulos nativos, sem instalação por npm. Foi usado no [fechamento da etapa 21](../documentacao/Validacao-Equivalencia-Modelos.md).
+`equivalencia.js` executa a coleção rica contra os dois módulos e compara suas respostas. Usa Node.js 12 ou superior e somente módulos nativos, sem instalação por npm.
 
 ## Preparar as APIs
 
@@ -32,7 +32,7 @@ $env:RICO_SERVER_PORT = "8081"
 & "$env:JAVA_HOME\bin\java.exe" -jar precificacao-rica/target/precificacao-rica-1.0.0-SNAPSHOT.jar
 ```
 
-`JAVA_HOME` precisa apontar para um JDK compatível. Se as portas estiverem ocupadas, escolha outras e ajuste o arquivo de configuração abaixo. Não é necessário igualar os códigos gerados. Na validação da etapa 21, os códigos do rico começaram em 1001 e os do anêmico em 1.
+`JAVA_HOME` precisa apontar para um JDK compatível. Se as portas estiverem ocupadas, escolha outras e ajuste o arquivo de configuração abaixo. Cada API pode gerar códigos diferentes; o comparador associa os códigos às operações de cadastro correspondentes.
 
 ## Executar
 
@@ -60,6 +60,8 @@ Para repetir o comando desde o início, use novamente bancos vazios exclusivos. 
 
 As respostas de sucesso precisam ter os mesmos campos e valores, inclusive precisão decimal e ordenação das listas. A comparação associa códigos gerados à mesma operação de cadastro e desconsidera horários gerados independentemente, depois de conferir seu formato. Nos erros, exige os mesmos status e valida o tipo e os campos essenciais da resposta; diferenças textuais ficam registradas.
 
+O resultado se limita aos cenários presentes na coleção. Por exemplo, o PATCH com telefone em branco tem comportamentos diferentes nos modelos e não é exercitado pelo comparador atual. A taxa por pagamento proposta na atividade de manutenção também não está implementada nem incluída nesta coleção.
+
 O executor usa HTTP real e interpreta os scripts da coleção com um subconjunto de `pm`: variáveis da coleção, substituição de variáveis e GUID, `pm.test`, `pm.expect` com as comparações usadas no arquivo e leitura/status da resposta. Não é um executor Postman genérico. Novas APIs `pm` na coleção exigem adaptação ou execução em uma ferramenta Postman compatível.
 
-Para usar o aplicativo Postman, importe [a coleção rica](../documentacao/postman/precificacao-rica.postman_collection.json), confira `baseUrl` e execute as seis pastas na ordem, começando pela preparação. As variáveis de código pertencem à coleção. O comparador local não valida a interface de importação do Postman.
+Para usar o aplicativo Postman, importe [a coleção rica](../documentacao/postman/precificacao-rica.postman_collection.json), confira `baseUrl` e execute as seis pastas na ordem, começando pela preparação. As variáveis de código pertencem à coleção. Um ambiente selecionado pode sobrescrever `baseUrl`; use `No environment` para manter o valor da coleção. O comparador local não valida a interface de importação do Postman.

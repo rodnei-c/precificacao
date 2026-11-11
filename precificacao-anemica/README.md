@@ -2,8 +2,6 @@
 
 API HTTP de produtos, precificação, faturas, categorias, cidades e clientes, com Java 17, Spring Boot 4.1.2, JDBC, PostgreSQL e Flyway.
 
-A [validação de equivalência com o rico](../documentacao/Validacao-Equivalencia-Modelos.md) foi concluída na etapa 21. Nesta rodada, o anêmico passou em 84 casos sem banco e 159 na suíte completa, sem falhas, erros ou ignorados. A suíte completa inclui os casos sem banco.
-
 ## Responsabilidades
 
 - Controller: recebe JSON, lê o código da URL e define a resposta HTTP.
@@ -36,7 +34,9 @@ $env:DB_USER = "postgres"
 $env:DB_PASSWORD = "senha-do-banco"
 ~~~
 
-A aplicação lê essas variáveis do processo que a inicia. Para manter a senha entre execuções locais, crie `precificacao-anemica/.env.anemico` com uma linha `DB_PASSWORD=sua-senha-local`. O módulo carrega esse arquivo opcional, que o Git ignora. Uma variável `DB_PASSWORD` definida no terminal tem prioridade sobre o arquivo.
+A aplicação lê essas variáveis do processo que a inicia. Para manter a senha entre execuções locais, crie `precificacao-anemica/.env.anemico` com uma linha `DB_PASSWORD=sua-senha-local`. O módulo carrega esse arquivo opcional, que o Git ignora. Ao executar na raiz do repositório, também aceita `.env.anemico` na raiz; se os dois arquivos existirem, o arquivo da pasta do módulo tem prioridade. As variáveis de ambiente têm prioridade sobre os arquivos.
+
+No IntelliJ, execute `AplicacaoAnemica` com o diretório de trabalho na raiz do repositório ou na pasta `precificacao-anemica`. O arquivo da pasta do módulo é encontrado nos dois casos.
 
 Ao iniciar, a aplicação tenta conectar ao banco configurado. Se o PostgreSQL informar que ele não existe, a aplicação conecta ao banco de manutenção `postgres` no mesmo servidor e cria o banco com o mesmo usuário e senha. O usuário precisa ser superusuário ou possuir a permissão `CREATEDB` para essa primeira criação. Bancos existentes são preservados e não exigem essa permissão adicional. Falhas de senha ou de conexão interrompem a inicialização com uma mensagem de erro.
 
@@ -75,7 +75,7 @@ JAVA_HOME='C:/Java/jdk-17.0.12' mvn -s configuracao-maven.xml -pl precificacao-a
 
 ## Endpoints para o Postman
 
-Importe [precificacao-anemica.postman_collection.json](../documentacao/postman/precificacao-anemica.postman_collection.json). A coleção tem 59 requisições em cinco pastas. A variável `baseUrl` começa em `http://localhost:8080`. Execute as pastas e suas requisições na ordem pelo Collection Runner, começando pela primeira requisição de preparação.
+Importe [precificacao-anemica.postman_collection.json](../documentacao/postman/precificacao-anemica.postman_collection.json). A coleção tem 59 requisições em cinco pastas. A variável `baseUrl` começa em `http://localhost:8080`. Confira se o ambiente selecionado no Postman está sobrescrevendo esse valor; selecione `No environment` para usar somente as variáveis da coleção. Execute as pastas e suas requisições na ordem pelo Collection Runner, começando pela primeira requisição de preparação.
 
 A preparação gera nomes, e-mails e CPFs de exemplo para cada execução e limpa as variáveis preenchidas pelo fluxo anterior. Os cadastros guardam `codigoCidade`, `codigoOutraCidade`, `codigoCategoria`, `codigoOutraCategoria`, `codigoCliente`, `codigoOutroCliente`, `codigoProduto`, `codigoFatura` e `codigoFaturaSemOpcionais` nas variáveis da coleção. Os filtros e as alterações seguintes usam esses códigos, sem pressupor que os registros começam em `1`. A variável `totalSimulado` guarda o total usado na comparação entre simulação e cadastro.
 
@@ -316,6 +316,8 @@ Envie `POST http://localhost:8080/api/faturas/simulacao` com o mesmo JSON do cad
 
 O cálculo e as validações são os mesmos do cadastro. Dados inválidos retornam `400`. Produtos ou clientes inexistentes retornam `404`.
 
+A forma de pagamento não acrescenta taxa ao cálculo atual. A [atividade de manutenção](../documentacao/Atividade-Taxa-por-Forma-de-Pagamento.md) propõe implementar essa regra somente na simulação.
+
 ### Listar faturas
 
 Envie `GET http://localhost:8080/api/faturas?inicio=2026-11-01&fim=2026-11-08&codigoCliente=1`. O filtro `codigoCliente` é opcional e aceita um código inteiro positivo. Os parâmetros `inicio` e `fim` são opcionais, usam o formato `AAAA-MM-DD` e incluem o dia informado por inteiro.
@@ -382,7 +384,7 @@ O perfil vale para `precificacao-anemica`; a configuração do módulo rico est�
 
 O teste de atualização exclusiva de e-mail instala um gatilho apenas no banco de teste para recusar comandos que mencionem colunas omitidas, mesmo que tentem regravar os mesmos valores. O gatilho e sua função são removidos ao terminar. `ClienteControllerTest` verifica que uma falha de acesso ao banco durante a atualização continua retornando `503`, com mensagem genérica.
 
-O registro das etapas e dos resultados de execução está em [Validacao-Plano-Anemico.md](../documentacao/Validacao-Plano-Anemico.md).
+Para comparar as respostas dos dois modelos por HTTP, siga as [instruções do executor local](../verificacao/README.md).
 
 O teste `CriacaoBancoPostgresTest` usa `BANCO_CRIACAO_TESTE_URL`, que deve apontar para o banco de manutenção `postgres` de um servidor exclusivo de testes. Ele reutiliza `BANCO_TESTE_USUARIO` e `BANCO_TESTE_SENHA`. O usuário deve conseguir criar bancos e papéis. O cenário de concorrência também exige um administrador autorizado a bloquear `pg_catalog.pg_database`; esse bloqueio temporário deve ser usado apenas no servidor exclusivo de testes. O teste cria bancos temporários com nomes aleatórios e os remove ao terminar; verifica criação antes do Flyway, preservação dos dados ao reiniciar, desativação da criação, identificadores com aspas, concorrência e falhas de permissão ou autenticação. A criação desativada exige especificamente o erro PostgreSQL de banco inexistente.
 

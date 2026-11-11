@@ -1,10 +1,14 @@
 # Precificação com Domínio Rico
 
-A API usa Takes e o banco `precificacao_rica`. `TkCadastroProduto` atende `POST /api/produtos`, `TkConsultaProduto` atende `GET /api/produtos/{codigo}`, `TkCadastroCategoria` atende `POST /api/categorias` e `TkListaCategorias` atende `GET /api/categorias`.
+A API usa Java 17, Takes, JDBC, PostgreSQL e Flyway. Implementa produtos, precificação, histórico, categorias, cidades, clientes e faturas. O endereço padrão é `http://127.0.0.1:8081`, com banco separado `precificacao_rica`.
+
+As regras ficam em objetos de domínio com comportamento, compostos com estratégias de precificação e desconto, especificações de validação e decoradores de resultados materializados. Os pacotes `http` e `pg` adaptam o domínio ao protocolo e ao PostgreSQL. `RotasDaAplicacaoRica` compõe as dependências e as rotas utilizadas pela aplicação e pelos testes.
+
+Para executar, consulte [Rodar a API](#rodar-a-api). A configuração local `.env.rico` é carregada por `AmbienteRico`, com prioridade para as variáveis de ambiente.
 
 ## Cálculos de faturas
 
-O pacote `br.com.modelagemdominio.rico.faturas` reúne o domínio de faturamento, no mesmo nível de `produtos`:
+O pacote `br.com.modelagemdominio.rico.faturas` reúne o domínio de faturamento, no mesmo nível de `produtos`. Abaixo, um recorte dos principais objetos e adaptadores:
 
 ~~~text
 faturas/
@@ -45,9 +49,9 @@ faturas/
     └── DescontoContratado.java
 ~~~
 
-`Fatura` define a entidade identificada e delega seus cálculos a `CalculoFatura`; `Faturas` define cadastro, consulta, simulação e listagem da coleção. `VinculosFatura` representa cliente e forma de pagamento opcionais, com as mesmas cinco modalidades do anêmico. `PgFaturas` grava cabeçalho e itens na mesma transação, usando as tabelas existentes. `FaturaConstante` conserva os valores materializados na operação, sem consultas por atributo. Cadastro, GET por código, simulação e listagem filtrada já estão expostos. A [comparação final com o anêmico](../documentacao/Validacao-Equivalencia-Modelos.md) foi concluída na etapa 21.
+`Fatura` define a entidade identificada e delega seus cálculos a `CalculoFatura`; `Faturas` define cadastro, consulta, simulação e listagem da coleção. `VinculosFatura` representa cliente e forma de pagamento opcionais, com as mesmas cinco modalidades do anêmico. `PgFaturas` grava cabeçalho e itens na mesma transação, usando as tabelas existentes. `FaturaConstante` conserva os valores materializados na operação, sem consultas por atributo. A API oferece cadastro, consulta por código, simulação e listagem filtrada de faturas.
 
-`PgFaturas` recebe `DataSource`, `ProdutosNaConexao` e `ClientesNaConexao` no construtor primário. O construtor que recebe somente o banco monta as implementações padrão e delega ao primário. `AplicacaoRica` fornece os objetos de produtos e clientes já compostos na montagem da API. Os três atributos são finais, e a construção não executa consultas.
+`PgFaturas` recebe `DataSource`, `ProdutosNaConexao` e `ClientesNaConexao` no construtor primário. O construtor que recebe somente o banco monta as implementações padrão e delega ao primário. `RotasDaAplicacaoRica` fornece os objetos de produtos e clientes já compostos na montagem da API. Os três atributos são finais, e a construção não executa consultas.
 
 Os contratos `ProdutosNaConexao` e `ClientesNaConexao` pertencem aos pacotes PostgreSQL. Recebem a conexão da operação e distinguem consulta protegida para cadastro de leitura sem bloqueio para simulação. `PgFaturas` abre, confirma, desfaz e encerra sua conexão; os colaboradores a utilizam sem assumir esse controle. Assim, a injeção preserva a transação do cadastro e a leitura coerente da simulação.
 
@@ -57,7 +61,7 @@ Os contratos `ProdutosNaConexao` e `ClientesNaConexao` pertencem aos pacotes Pos
 
 Os valores de um resultado não fazem novas consultas. Quando o item recebe a coleção de produtos, uma nova chamada de cálculo lê novamente os produtos. Quando recebe um produto materializado, conserva o preço daquela leitura. O cadastro usa produtos carregados em conjunto na sua transação e materializa o retorno antes do commit. O GET usa uma consulta conjunta de cabeçalho, itens e produtos; uma nova requisição lê os preços atuais, e os campos de uma mesma resposta usam os valores materializados dessa leitura.
 
-Os descontos usam composição pelo contrato `Desconto`. `DescontoPercentual` calcula o abatimento sem arredondamento intermediário. `DescontoFixo` mantém seu valor original e limita o abatimento ao subtotal atual; quando os preços sobem, o valor original volta a ser aplicado até esse limite. `SemDesconto` representa ausência de abatimento. O desconto percentual segue a regra inicial; a proposta de mínimo de R$ 200,00 foi descartada pelo usuário.
+Os descontos usam composição pelo contrato `Desconto`. `DescontoPercentual` calcula o abatimento sem arredondamento intermediário. `DescontoFixo` mantém seu valor original e limita o abatimento ao subtotal atual; quando os preços sobem, o valor original volta a ser aplicado até esse limite. `SemDesconto` representa ausência de abatimento. Não há subtotal mínimo para aplicar desconto percentual.
 
 `Desconto.registro()` fornece tipo e valor original para persistência; a ausência de registro representa `SemDesconto`. `DescontoReconstituido` compõe a estratégia correspondente ao registro e delega cálculo, validação do subtotal inicial e registro. Esse decorator substitui a fábrica estática `Desconto.reconstituir`. Um desconto fixo ou percentual de zero continua tendo registro, preservando sua diferença em relação à ausência de desconto.
 
@@ -142,6 +146,8 @@ Envie um POST para `http://127.0.0.1:8081/api/faturas/simulacao` com `Content-Ty
 Cliente e pagamento, quando informados, passam pelas mesmas validações do cadastro, mesmo sem aparecer na resposta. O desconto fixo não pode superar o subtotal inicial. Entradas inválidas retornam `400`, referências inexistentes retornam `404` e falhas de leitura retornam `503`.
 
 A simulação consulta os preços atuais e reutiliza a preparação e os objetos de cálculo do cadastro. A operação é somente de leitura: não cria fatura, itens ou código. O JSON e suas validações são compartilhados por `PedidoFatura`; as fórmulas continuam no domínio.
+
+A forma de pagamento não acrescenta taxa ao cálculo atual. A [atividade de manutenção](../documentacao/Atividade-Taxa-por-Forma-de-Pagamento.md) propõe implementar essa regra somente na simulação.
 
 ## Listar faturas por período e cliente
 
@@ -408,7 +414,7 @@ O Flyway registra as migrações aplicadas em `public.flyway_schema_history`. Ex
 
 O plugin é executado pelos comandos acima; compilar o projeto não prepara o banco da API. A preparação automática ocorre ao executar o JAR. O Flyway também está entre as dependências de execução do módulo.
 
-## Estrutura inicial
+## Esquema do banco
 
 A migração `src/main/resources/db/migration/V1__criar_tabela_produto.sql` cria `public.produto`:
 
@@ -428,6 +434,8 @@ As migrações V3 a V10 completam o esquema de negócio com categoria, históric
 O banco mantém os valores calculados e suas restrições de integridade. As fórmulas e as validações das entradas pertencem aos objetos Java. A divisão dos objetos em classes não exige uma tabela para cada classe.
 
 ## Compilar
+
+É necessário JDK 17 ou superior e Maven 3.6.3 ou superior. Os comandos Maven deste README partem da raiz do repositório e usam `configuracao-maven.xml`, sem modificar a configuração corporativa. O projeto compila com `release` 17; também pode ser executado com o JDK 21.
 
 ~~~powershell
 mvn -s configuracao-maven.xml -pl precificacao-rica package
@@ -471,110 +479,21 @@ O perfil exige a suíte completa. Configuração ausente, opções para pular ou
 
 Os casos PostgreSQL recebem `@Tag("integracao")`, na classe inteira ou no método, conforme a dependência. A lista de suítes e dos métodos de banco das classes mistas está em [src/test/ant/integracao.xml](src/test/ant/integracao.xml). Ao acrescentar, renomear ou reorganizar esses testes, atualizar a lista e manter os casos sem banco fora da tag. `PrepararBancoIntegracao` aplica as migrações; `VerificarIntegracao` confere os relatórios. São ferramentas do processo de teste e não entram na contagem de casos JUnit.
 
-`ApiProdutosTest` inicia a API em porta temporária, confere cadastro e consulta pelo `Location` nas duas modalidades e verifica alteração e histórico. `PgProdutosTest` verifica os valores persistidos, texto com acentos e apóstrofo, consulta atualizada por `PgProduto` e valores preservados pelo decorador. Os testes de categorias, cidades e clientes exercitam os contratos já implementados e removem os registros de apoio ao terminar.
+Os testes cobrem:
 
-`CriacaoBancoPostgresTest` cobre a API com banco novo e após reinício, criação desativada, usuário sem `CREATEDB`, senha incorreta, identificador com aspas, criação concorrente e falha de migração antes da publicação da API.
+- Invariantes dos valores, cálculos de precificação, arredondamento e descontos.
+- Cadastro, consulta e atualização parcial de clientes, categorias e cidades.
+- Faturas, quantidades fracionárias, simulação sem escrita e recálculo com preços atuais.
+- Transações, desfazimento após falha, alterações concorrentes e classificação de erros de persistência.
+- Materialização dos resultados, quantidade de comandos SQL, leitura UTF-8 e contratos HTTP, incluindo métodos não permitidos.
+- Criação automática do banco, migrações e leitura de `.env.rico`. `AmbienteRicoTest` confere a prioridade do ambiente, os diretórios de execução e falhas no arquivo local.
 
-`CadastroCategoriaTest` também provoca uma falha durante a inserção para verificar que ela retorna `503`, preserva os registros anteriores e não é confundida com nome duplicado. O gatilho de teste é temporário e é removido ao terminar.
-
-Os testes do vínculo de produto também verificam categoria omitida, atualização observada em novas consultas, preservação da leitura anterior e erros de outra referência. A remoção da categoria entre a validação e a escrita é testada com a chave estrangeira real do PostgreSQL, tanto no cadastro quanto na alteração.
-
-`ListaProdutosTest` confere ordenação por código com inserções em outra ordem, todos os campos da resposta, nova leitura e ausência de correspondências. `SqlContado` observa os comandos JDBC da aplicação e exige um por resposta; retirar a coleção materializada somente de uma cópia temporária fez o teste detectar sete comandos para dois produtos.
-
-`ReprecificacaoPostgresTest` verifica os três cálculos nas duas modalidades, o custo calculado gravado, a repetição sem nova escrita, a mesma conexão para produto e histórico, o desfazimento após falha na inserção do histórico e duas alterações concorrentes. Requisições simultâneas com os mesmos valores geram somente um registro. As verificações negativas em cópias temporárias detectaram a retirada da transação e do bloqueio do produto.
-
-O teste existente de renomeação verifica o próprio nome com outra capitalização, conflito com outra categoria e preservação do produto e do histórico. `RenomeacaoCategoriaPostgresTest` provoca uma falha após a atualização, exige `503`, confere o cadastro preservado e repete a operação com sucesso após retirar a falha. Em uma cópia temporária, retirar a conferência da restrição de nome fez esse teste detectar a resposta incorreta `400`.
-
-`CadastroCidadeTest` confere o limite válido de 200 caracteres, normalização da UF, duplicidade somente na mesma UF e rejeição de entradas inválidas antes da conexão. Também provoca uma falha de outra restrição após a inserção, exige `503`, conserva os registros anteriores e repete o cadastro com sucesso após retirar o gatilho. `ListaCidadesTest` verifica a ordem por código, a resposta vazia e a indisponibilidade; o cenário PostgreSQL exige uma conexão e uma consulta para montar a resposta, sem acesso ao banco durante a construção das rotas.
-
-Os testes do filtro de nome também conferem acentos, apóstrofo, símbolos codificados na URL e 200 caracteres com espaços nas extremidades. O cenário com acento detectou a dependência da codificação padrão do Java no Windows; a leitura do parâmetro passou a usar UTF-8 explícito. Em uma cópia temporária, trocar a busca literal por `LIKE` sem escape fez o teste detectar uma cidade indevida.
-
-O cenário específico de UF em `ListaCidadesTest` cadastra cidades pela API, incluindo duas com o mesmo nome em UFs diferentes. Confere filtros isolados e combinados, minúsculas com espaços, campos em branco e os mesmos códigos e campos devolvidos no cadastro. Cada busca exige uma conexão e uma consulta. Uma cópia temporária que combinava os filtros com `OR` foi rejeitada pelo teste por incluir uma cidade de outra UF.
-
-`CadastroClientePostgresTest` confere os limites válidos dos campos, normalização, opcionais nulos e os dados relidos na listagem. Também provoca falhas de outras restrições após a inserção e remove a cidade entre a validação e a escrita para exercitar a chave estrangeira real. Os erros inesperados exigem `503` e preservação dos registros anteriores; retirar a conferência da restrição somente numa cópia fez os testes detectar `400` e `404` indevidos. O fluxo de cadastro/listagem existente exige uma conexão e uma consulta para montar a lista.
-
-`ConsultaClienteTest` reúne as consultas com e sem endereço, a leitura de dados atualizados, o cliente removido e a continuidade da listagem. Cada GET exige uma conexão e uma consulta. Também confere `503` para um registro existente com telefone inválido e a preservação dessa linha após a leitura. Em uma cópia temporária, classificar falhas de consulta como cliente ausente fez dois casos detectarem `404` indevido.
-
-`AlteracaoEmailPostgresTest` concentra as verificações de e-mail antes misturadas ao cadastro. Confere limite válido de 254 caracteres, capitalização, duplicidade, preservação dos dados e escrita somente da coluna solicitada. Também força falha de outra restrição e falha na materialização depois do UPDATE, com um marcador que comprova a escrita alcançada. A transação preserva o e-mail anterior; retirá-la somente numa cópia temporária fez o teste detectar o valor novo indevidamente gravado após `503`.
-
-`AlteracaoTelefonePostgresTest` reúne substituição, remoção, omissão e envio conjunto dos contatos, preservando os demais dados do cliente. Confere também que um conflito de e-mail impede alterar o telefone e que uma falha após a escrita desfaz os dois contatos. Nos casos concorrentes, observa as duas requisições aguardando o bloqueio da mesma linha pelo grafo de `pg_blocking_pids` e verifica os valores finais no banco. Uma cópia que gravava valores antigos foi rejeitada pelos dois casos concorrentes, para telefone substituído e removido.
-
-Na validação final da etapa 21 em 10 de novembro de 2026, passaram **256 casos sem banco, em 22 suítes**, e **368 na suíte completa, em 36 suítes**, sem falhas, erros ou ignorados. A suíte completa inclui os casos sem banco; as contagens não representam cobertura nem precisam coincidir com as do anêmico. Os dois JARs foram gerados e executados contra bancos novos para a comparação por HTTP.
-
-`FiltroProdutosUtf8Test` executa a rota de listagem em outra JVM, com codificação padrão Windows-1252. Confere acentos, símbolos e parâmetros combinados. O teste reproduziu o erro anterior de decodificação e passou após a leitura explícita em UTF-8.
-
-Na etapa 1 da revisão de modelagem, também em 10 de novembro de 2026, passaram **273 casos sem banco em 23 suítes** e **385 completos em 37 suítes**, sem falhas, erros ou ignorados. A suíte completa inclui os casos sem banco. `ValoresDePrecificacaoTest` verifica diretamente as invariantes, os limites válidos, a fração exata e a igualdade numérica dos valores. `PrecificacoesTest` também confere as duas direções dos cálculos fracionários e a tradução das falhas com mensagem e causa preservadas. A preparação automática, a persistência, o histórico e as faturas foram exercitados em PostgreSQL descartável. Os próximos ajustes de modelagem aguardam aprovação.
-
-Na etapa 2 da revisão de modelagem, passaram **273 casos sem banco em 23 suítes** e **389 completos em 38 suítes**, sem falhas, erros ou ignorados. `ComposicaoFaturasPostgresTest` acrescenta quatro casos para cadastro e simulação com colaboradores recebidos pelo construtor: uso da mesma conexão, seleção do modo protegido ou somente de leitura, resultado calculado e recusa de referência sem consultar produtos ou gravar. A consulta real de produtos é composta com `DataSourceSemConexao`, de modo que abrir outra conexão faz o teste falhar; o SQL usa a conexão fornecida por `PgFaturas`. A construção dos dois caminhos do construtor também permanece verificada sem banco. O perfil completo exige a nova suíte. Os ajustes da etapa 3 aguardam aprovação.
-
-Na etapa 3 da revisão de modelagem, passaram **276 casos sem banco em 24 suítes** e **392 completos em 39 suítes**, sem falhas, erros ou ignorados. `TextosClienteTest` acrescenta três regressões: espaços Unicode nas extremidades com preservação do conteúdo interno, tratamento distinto de texto obrigatório e opcional em branco acima do limite, e rejeição de caractere nulo no complemento. Os mesmos casos passaram antes e depois da refatoração. Os testes existentes de cadastro, consulta e alteração de clientes, inclusive limites e mensagens, foram preservados. O perfil completo exige a nova suíte. A etapa 4 aguarda aprovação.
-
-Na etapa 4 da revisão de modelagem, passaram **280 casos sem banco em 25 suítes** e **396 completos em 40 suítes**, sem falhas, erros ou ignorados. `AlteracoesCampoTest` verifica as três operações compondo uma escrita, a execução somente para campos informados, as consultas derivadas e a rejeição de substituição nula. Os testes PostgreSQL existentes de contatos e endereço também passaram, incluindo escrita apenas das colunas enviadas, desfazimento da operação e atualizações concorrentes. O perfil completo exige a nova suíte. A etapa 5 aguarda aprovação.
-
-Na etapa 5 da revisão de modelagem, passaram **283 casos sem banco em 26 suítes** e **399 completos em 41 suítes**, sem falhas, erros ou ignorados. O completo inclui os unitários. `TelefoneOpcionalTest` acrescenta três casos para ausência, formatação preservada e rejeição do conteúdo inválido pela composição com `Telefone`. Os testes HTTP e PostgreSQL existentes de cadastro, consulta e alteração de clientes também passaram, inclusive a rejeição de texto em branco no PATCH. O perfil completo exige a nova suíte. O PostgreSQL temporário foi removido. A etapa 6 aguarda aprovação.
-
-Na etapa 6 da revisão de modelagem, passaram **295 casos sem banco em 27 suítes** e **411 completos em 42 suítes**, sem falhas, erros ou ignorados. O completo inclui os unitários. Os 12 casos de `CpfTest` passaram antes e depois da refatoração: normalização, restos zero e um no cálculo dos dois dígitos, zeros iniciais, falha em cada dígito, sequência repetida e formatos inválidos. O caso de primeiro dígito incorreto mantém o segundo coerente com o prefixo recebido, para detectar a omissão da primeira conferência. Os testes HTTP e PostgreSQL existentes também passaram. O perfil completo exige a nova suíte. O PostgreSQL temporário foi removido. A etapa 7 aguarda aprovação.
-
-Na etapa 7 da revisão de modelagem, passaram **296 casos sem banco em 27 suítes** e **412 completos em 42 suítes**, sem falhas, erros ou ignorados. O completo inclui os unitários. Os cinco casos de reconstituição de `DescontosTest` foram adaptados para o novo objeto, preservando ausência, desconto zero, tipo, valor original e precisão. Foi acrescentada uma regressão para a validação do subtotal inicial do desconto fixo, inclusive o limite válido. Os 21 casos da suíte de descontos passaram antes e depois da troca. Os testes PostgreSQL existentes também passaram, incluindo desconto zero, preços atuais e redução e retomada do desconto fixo. O PostgreSQL temporário foi removido. A etapa 8 aguarda aprovação.
-
-Na etapa 8 da revisão de modelagem, passaram **296 casos sem banco em 27 suítes** e **414 completos em 42 suítes**, sem falhas, erros ou ignorados. O completo inclui os unitários. O teste integrado dos vínculos foi ampliado para as quatro combinações de cliente e pagamento, verificando presença independente, igualdade entre cadastro e consulta, leitura sem escrita e um único comando SQL. Também passaram os testes existentes de descontos, precisão, preços atuais e rollback. O JAR foi gerado e o PostgreSQL temporário removido. A etapa 9 aguarda aprovação.
-
-Na etapa 9 da revisão de modelagem, passaram **296 casos sem banco em 27 suítes** e **415 completos em 42 suítes**, sem falhas, erros ou ignorados. O completo inclui os unitários. Um novo caso integrado verifica ausência, vínculo e remoção da categoria nos dois caminhos de leitura, distinguindo o produto que consulta o registro atual daquele que conserva os valores materializados. Os testes HTTP, listagens e faturas existentes também passaram. O JAR foi gerado e o PostgreSQL temporário removido. A etapa 10 aguarda aprovação.
-
-Na etapa 10 da revisão de modelagem, passaram **305 casos sem banco em 28 suítes**, antes e depois da refatoração, e **424 completos em 43 suítes**, sem falhas, erros ou ignorados. O completo inclui os unitários. Os nove casos de `CodigoCategoriaTest` verificam precisão, limites, ausência, fração, código positivo, mensagens e causas pelos construtores públicos. A suíte foi registrada como obrigatória no perfil completo. O JAR foi gerado e o PostgreSQL temporário removido. A etapa 11 aguarda aprovação.
-
-Na etapa 11 da revisão de modelagem, passaram **311 casos sem banco em 29 suítes**, antes e depois da refatoração, e **430 completos em 44 suítes**, sem falhas, erros ou ignorados. O completo inclui os unitários. Os seis casos de `CodigoCidadeTest` verificam a composição com a conversão compartilhada, as mensagens de cidade, precisão, causas e código positivo. Os nove casos de categoria continuam conferindo os limites numéricos. A nova suíte foi registrada como obrigatória no perfil completo. O JAR foi gerado e o PostgreSQL temporário removido. A etapa 12 aguarda aprovação.
-
-Na etapa 12 da revisão de modelagem, passaram **317 casos sem banco em 30 suítes**, antes e depois da refatoração, e **436 completos em 45 suítes**, sem falhas, erros ou ignorados. O completo inclui os unitários. Os seis casos de `SiglaUfTest` conferem normalização Unicode sob idioma turco, ausência, vazio, branco e siglas inválidas, incluindo mensagens e causas. Os testes existentes mantêm a verificação de UF obrigatória no cadastro, filtro opcional na listagem e acesso ao banco somente após a validação. A suíte nova foi registrada como obrigatória. O JAR foi gerado e o PostgreSQL temporário removido. A etapa 13 aguarda aprovação.
-
-Na etapa 13 da revisão de modelagem, passaram **317 casos sem banco em 30 suítes** e **437 completos em 45 suítes**, sem falhas, erros ou ignorados. O completo inclui os unitários. Um novo caso integrado confirma que os objetos do cadastro e da listagem conservam seus dados depois de alterar nome e UF no banco, enquanto uma nova leitura recebe os valores atuais. Também verifica uma conexão e um comando por operação. A suíte existente já era obrigatória. O JAR foi gerado e o PostgreSQL temporário removido. A etapa 14 aguarda aprovação.
-
-Na etapa 14 da revisão de modelagem, passaram **317 casos sem banco em 30 suítes** e **438 completos em 45 suítes**, sem falhas, erros ou ignorados. O completo inclui os unitários. Um novo caso integrado confere os objetos devolvidos pelo cadastro, listagem e renomeação após duas alterações de nome, além de uma conexão e um comando por operação. A leitura mais recente recebe o nome atual. A suíte existente já era obrigatória. O JAR foi gerado e o PostgreSQL temporário removido. A etapa 15 aguarda aprovação.
-
-Na etapa 15 da revisão de modelagem, passaram **323 casos sem banco em 31 suítes** e **444 completos em 46 suítes**, sem falhas, erros ou ignorados. O completo inclui os unitários. Os seis casos de `FalhaNaRenomeacaoCategoriaTest` conferem a classificação precisa da duplicidade, outras falhas, metadados ausentes, causa original e logs. A suíte foi registrada como obrigatória. Os testes PostgreSQL e HTTP existentes também passaram. O JAR foi gerado e o PostgreSQL temporário removido.
-
-Na etapa 16 da revisão de modelagem, passaram **325 testes sem banco** e **446 no perfil completo**, sem falhas, erros ou casos ignorados. Os novos casos de `CidadesDaConsultaTest` conferem execução sob demanda e fechamento do cursor SQL em sucesso e falha. O JAR foi gerado e o PostgreSQL descartável foi removido.
-
-Na etapa 17 da revisão de modelagem, passaram **332 testes sem banco** e **453 no perfil completo**, sem falhas, erros ou casos ignorados. `PrecificacaoTest` e `EntidadesMaterializadasTest` verificam as regras na construção direta dos objetos.
-
-Na etapa 18 da revisão de modelagem, passaram **335 testes sem banco** e **456 no perfil completo**. Os novos casos verificam a ordem das especificações, as mensagens e o limite após arredondamento.
-
-Na etapa 19 da revisão de modelagem, passaram **335 testes sem banco** e **456 no perfil completo**. O teste HTTP do histórico compara os códigos e datas da resposta com as linhas gravadas no PostgreSQL.
-
-Na etapa 20 da revisão de modelagem, passaram **335 testes sem banco** e **456 no perfil completo**. A listagem HTTP usou uma conexão e um comando SQL. O teste integrado também verificou o preço de um produto materializado e o de um produto sob demanda após uma alteração no banco.
-
-Na etapa 21 da revisão de modelagem, passaram **335 testes sem banco** e **456 no perfil completo**. Os testes de reprecificação confirmaram a conexão compartilhada, o desfazimento das gravações em caso de falha e a concorrência.
-
-Na etapa 22 da revisão de modelagem, passaram **341 testes sem banco** e **462 no perfil completo**. `FalhaNaGravacaoProdutoTest` verifica a classificação de categoria ausente, a preservação da causa e o conteúdo do log de persistência.
-
-Na etapa 23 da revisão de modelagem, passaram **341 testes sem banco** e **462 no perfil completo**. O teste de consulta lê telefone e endereço após o fechamento do cursor e verifica uma conexão e um comando.
-
-Na etapa 24 da revisão de modelagem, passaram **341 testes sem banco** e **462 no perfil completo**. A integração conferiu a conexão compartilhada na atualização de endereço, a escrita dos campos solicitados, o desfazimento e as alterações concorrentes.
-
-Na etapa 25 da revisão de modelagem, passaram **345 testes sem banco** e **466 no perfil completo**. Os novos casos verificam a classificação da falha e a preservação da causa quando o rollback também falha.
-
-Na etapa 26 da revisão de modelagem, passaram **345 testes sem banco** e **466 no perfil completo**. A integração verificou uma conexão para o cadastro de fatura, incluindo itens e retorno, e o desfazimento após falha no segundo item ou na materialização.
-
-Na etapa 27 da revisão de modelagem, passaram **353 testes sem banco** e **474 no perfil completo**. Os novos casos verificam as restrições na cadeia de exceções de gravação, a tradução de falhas de leitura e a preservação da exceção original quando o rollback também falha.
-
-Na etapa 28 da revisão de modelagem, passaram **353 testes sem banco** e **474 no perfil completo**. As listagens de cidades, produtos e faturas usam o mesmo leitor de parâmetros UTF-8. Os testes verificam filtros combinados, espaços e a prioridade da primeira ocorrência de um parâmetro repetido.
-
-Na etapa 29 da revisão de modelagem, passaram **355 testes sem banco** e **476 no perfil completo**. Os testes de categoria e PATCH de cliente verificam entradas inválidas, omissão, remoção e substituição. Os novos casos conferem e-mail em branco e a precedência do erro de formato.
-
-Na etapa 30 da revisão de modelagem, passaram **355 testes sem banco** e **476 no perfil completo**. Cadastro e simulação compartilham a leitura do pedido e a conversão exata dos códigos. Os testes verificam as mensagens para códigos inválidos nas duas rotas e o intervalo inclusivo da listagem.
-
-Na etapa 31 da revisão de modelagem, passaram **355 testes sem banco** e **476 no perfil completo**. As respostas de produto, cliente e fatura passaram a compor grupos de dados mantendo o formato público. O executor da coleção Postman conferiu **150 pares de respostas HTTP** dos dois módulos.
-
-Na etapa 32 da revisão de modelagem, passaram **357 testes sem banco** e **479 no perfil completo**. A configuração do PostgreSQL passou a ser composta antes da abertura de conexões. Os testes conferem a opção de criação, a preservação da causa quando o banco recusa conexões e os cenários de inicialização e migração.
-
-Na etapa 33 da revisão de modelagem, passaram **370 testes sem banco** e **492 no perfil completo**. A montagem das rotas passou a um objeto compartilhado pela aplicação e pelos testes. Os 13 novos casos verificam o retorno 405 e os métodos permitidos antes de abrir conexão.
-
-A etapa 34 encerrou a revisão de modelagem com **369 testes sem banco** e **491 no perfil completo**, sem falhas, erros ou casos ignorados. A coleção confirmou 150 pares de respostas HTTP comparadas. O [registro final](../documentacao/Validacao-Equivalencia-Modelos.md#validacao-final-modelagem) apresenta as evidências e os exemplos de código.
+Para consultar os resultados e as contagens de testes, utilize os relatórios produzidos pelos comandos acima. A suíte completa inclui os testes sem banco.
 
 ## Coleção Postman e equivalência
 
-Importe [precificacao-rica.postman_collection.json](../documentacao/postman/precificacao-rica.postman_collection.json). A variável `baseUrl` começa em `http://localhost:8081`. Execute as seis pastas na ordem pelo Collection Runner, desde a primeira requisição: ela prepara nomes, CPFs válidos e e-mails novos. Os códigos das respostas são armazenados nas variáveis desta coleção.
+Importe [precificacao-rica.postman_collection.json](../documentacao/postman/precificacao-rica.postman_collection.json). A variável `baseUrl` começa em `http://localhost:8081`. Confira se o ambiente selecionado no Postman está sobrescrevendo esse valor; selecione `No environment` para usar somente as variáveis da coleção. Execute as seis pastas na ordem pelo Collection Runner, desde a primeira requisição: ela prepara nomes, CPFs válidos e e-mails novos. Os códigos das respostas são armazenados nas variáveis desta coleção.
 
 As 75 requisições incluem produtos e histórico, categorias, cidades, clientes, alterações parciais, faturas, precisão e preços atuais. A última pasta verifica a redução e retomada do desconto fixo e a preservação dos vínculos após alterações. A coleção cria e altera seus dados de exemplo; repetir desde o início gera novos cadastros.
 
-A etapa 21 executou os scripts da coleção por HTTP real, com o [executor local](../verificacao/README.md), em duas rodadas por modelo. Não foi uma execução pelo aplicativo Postman ou Newman. O [registro de equivalência](../documentacao/Validacao-Equivalencia-Modelos.md) descreve o escopo e os resultados.
+O [executor local](../verificacao/README.md) permite comparar as respostas dos dois módulos por HTTP. O resultado se limita aos cenários da coleção. Há diferenças de mensagens de erro e, fora desses cenários, de validação: no PATCH, o rico rejeita telefone em branco, enquanto o anêmico o trata como remoção. Nos dois modelos, `null` remove o telefone.
