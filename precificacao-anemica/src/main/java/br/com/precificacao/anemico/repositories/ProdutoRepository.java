@@ -1,5 +1,6 @@
 package br.com.precificacao.anemico.repositories;
 
+import br.com.precificacao.anemico.enums.ModalidadePrecificacao;
 import br.com.precificacao.anemico.models.Produto;
 
 import java.util.List;
@@ -11,5 +12,7 @@ public interface ProdutoRepository {
 
     Optional<Produto> buscarPorCodigo(Long codigo);
 
-    List<Produto> listar();
+    Optional<Produto> buscarPorCodigoParaAtualizacao(Long codigo);
+
+    List<Produto> listar(String nome, ModalidadePrecificacao modalidade, Long categoria);
 }

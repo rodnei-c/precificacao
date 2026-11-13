@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project name="validacao-integracao-rica">
+  <target name="validar-ambiente">
+    <property environment="ambiente" />
+    <fail message="Defina RICO_BANCO_TESTE_URL com a URL JDBC PostgreSQL do banco exclusivo de testes.">
+      <condition>
+        <not>
+          <and>
+            <isset property="ambiente.RICO_BANCO_TESTE_URL" />
+            <matches string="${ambiente.RICO_BANCO_TESTE_URL}" pattern="^jdbc:postgresql:.+$" />
+          </and>
+        </not>
+      </condition>
+    </fail>
+    <fail message="Defina RICO_BANCO_CRIACAO_TESTE_URL com a URL JDBC de manutenção do servidor PostgreSQL exclusivo de testes.">
+      <condition>
+        <not>
+          <and>
+            <isset property="ambiente.RICO_BANCO_CRIACAO_TESTE_URL" />
+            <matches string="${ambiente.RICO_BANCO_CRIACAO_TESTE_URL}" pattern="^jdbc:postgresql:.+$" />
+          </and>
+        </not>
+      </condition>
+    </fail>
+    <fail message="Defina RICO_BANCO_TESTE_USUARIO para a validação de integração.">
+      <condition>
+        <not>
+          <and>
+            <isset property="ambiente.RICO_BANCO_TESTE_USUARIO" />
+            <matches string="${ambiente.RICO_BANCO_TESTE_USUARIO}" pattern=".*\S.*" />
+          </and>
+        </not>
+      </condition>
+    </fail>
+    <fail message="Defina RICO_BANCO_TESTE_SENHA para a validação de integração.">
+      <condition><not><isset property="ambiente.RICO_BANCO_TESTE_SENHA" /></not></condition>
+    </fail>
+    <fail message="O perfil integracao exige a execução dos testes e a verificação das falhas; remova as opções que os pulam ou ignoram seus resultados.">
+      <condition>
+        <or>
+          <istrue value="${skipTests}" />
+          <istrue value="${maven.test.skip}" />
+          <istrue value="${maven.test.skip.exec}" />
+          <istrue value="${maven.test.failure.ignore}" />
+        </or>
+      </condition>
+    </fail>
+    <fail message="O perfil integracao valida a suíte completa; remova os filtros de seleção de testes.">
+      <condition>
+        <or>
+          <isset property="test" />
+          <isset property="groups" />
+          <isset property="excludedGroups" />
+          <isset property="surefire.includesFile" />
+          <isset property="surefire.excludesFile" />
+        </or>
+      </condition>
+    </fail>
+  </target>
+
+  <target name="conferir-relatorios">
+    <java classname="br.com.modelagemdominio.rico.testes.VerificarIntegracao" fork="true" failonerror="true">
+      <classpath><pathelement location="${diretorio.classes.teste}" /></classpath>
+      <arg value="${diretorio.relatorios}" />
+      <arg value="br.com.modelagemdominio.rico.AlteracaoClienteTest" />
+      <arg value="br.com.modelagemdominio.rico.AlteracaoEmailPostgresTest" />
+      <arg value="br.com.modelagemdominio.rico.AlteracaoEnderecoPostgresTest" />
+      <arg value="br.com.modelagemdominio.rico.AlteracaoTelefonePostgresTest" />
+      <arg value="br.com.modelagemdominio.rico.CadastroCategoriaTest" />
+      <arg value="br.com.modelagemdominio.rico.categorias.CodigoCategoriaTest" />
+      <arg value="br.com.modelagemdominio.rico.categorias.pg.FalhaNaRenomeacaoCategoriaTest" />
+      <arg value="br.com.modelagemdominio.rico.cidades.CodigoCidadeTest" />
+      <arg value="br.com.modelagemdominio.rico.cidades.SiglaUfTest" />
+      <arg value="br.com.modelagemdominio.rico.cidades.pg.CidadesDaConsultaTest" />
+      <arg value="br.com.modelagemdominio.rico.CadastroCidadeTest" />
+      <arg value="br.com.modelagemdominio.rico.CadastroClienteTest" />
+      <arg value="br.com.modelagemdominio.rico.CadastroFaturaTest" />
+      <arg value="br.com.modelagemdominio.rico.CadastroFaturaPostgresTest" />
+      <arg value="br.com.modelagemdominio.rico.ComposicaoFaturasPostgresTest" />
+      <arg value="br.com.modelagemdominio.rico.SimulacaoFaturaPostgresTest" />
+      <arg value="br.com.modelagemdominio.rico.CadastroClientePostgresTest" />
+      <arg value="br.com.modelagemdominio.rico.CategoriaDoProdutoTest" />
+      <arg value="br.com.modelagemdominio.rico.ConsultaClienteTest" />
+      <arg value="br.com.modelagemdominio.rico.ConsultaFaturaTest" />
+      <arg value="br.com.modelagemdominio.rico.ConsultaFaturaPostgresTest" />
+      <arg value="br.com.modelagemdominio.rico.clientes.TextosClienteTest" />
+      <arg value="br.com.modelagemdominio.rico.clientes.AlteracoesCampoTest" />
+      <arg value="br.com.modelagemdominio.rico.clientes.TelefoneOpcionalTest" />
+      <arg value="br.com.modelagemdominio.rico.clientes.CpfTest" />
+      <arg value="br.com.modelagemdominio.rico.clientes.pg.FalhasDeClienteTest" />
+      <arg value="br.com.modelagemdominio.rico.faturas.pg.FalhasDeFaturaTest" />
+      <arg value="br.com.modelagemdominio.rico.RotasDaAplicacaoRicaTest" />
+      <arg value="br.com.modelagemdominio.rico.EntidadesMaterializadasTest" />
+      <arg value="br.com.modelagemdominio.rico.HistoricoPrecificacaoTest" />
+      <arg value="br.com.modelagemdominio.rico.infraestrutura.banco.EnderecoPostgresTest" />
+      <arg value="br.com.modelagemdominio.rico.infraestrutura.configuracao.AmbienteRicoTest" />
+      <arg value="br.com.modelagemdominio.rico.infraestrutura.banco.CriacaoBancoPostgresTest" />
+      <arg value="br.com.modelagemdominio.rico.ListaCategoriasTest" />
+      <arg value="br.com.modelagemdominio.rico.ListaCidadesTest" />
+      <arg value="br.com.modelagemdominio.rico.ListaClientesTest" />
+      <arg value="br.com.modelagemdominio.rico.ListaFaturasTest" />
+      <arg value="br.com.modelagemdominio.rico.ListaFaturasPostgresTest" />
+      <arg value="br.com.modelagemdominio.rico.ListaProdutosTest" />
+      <arg value="br.com.modelagemdominio.rico.produtos.PrecificacaoTest" />
+      <arg value="br.com.modelagemdominio.rico.produtos.pg.FalhaNaGravacaoProdutoTest" />
+      <arg value="br.com.modelagemdominio.rico.ReprecificacaoPostgresTest" />
+      <arg value="br.com.modelagemdominio.rico.RenomeacaoCategoriaPostgresTest" />
+      <arg value="br.com.modelagemdominio.rico.faturas.QuantidadeTest" />
+      <arg value="br.com.modelagemdominio.rico.faturas.CalculoFaturaTest" />
+      <arg value="br.com.modelagemdominio.rico.faturas.ItemFaturaTest" />
+      <arg value="br.com.modelagemdominio.rico.faturas.descontos.DescontosTest" />
+      <arg value="br.com.modelagemdominio.rico.produtos.http.ApiProdutosTest" />
+      <arg value="br.com.modelagemdominio.rico.produtos.http.FiltroProdutosUtf8Test" />
+      <arg value="br.com.modelagemdominio.rico.produtos.pg.PgProdutosTest" />
+      <arg value="br.com.modelagemdominio.rico.produtos.pg.PgConstrucaoTest" />
+      <arg value="br.com.modelagemdominio.rico.produtos.ValoresDePrecificacaoTest" />
+      <arg value="br.com.modelagemdominio.rico.produtos.precificacao.PrecificacoesTest" />
+      <arg value="br.com.modelagemdominio.rico.produtos.precificacao.ValoresParaPrecificarTest" />
+      <arg value="br.com.modelagemdominio.rico.CadastroCategoriaTest#cadastraCategoriaERecusaMesmoNomeComOutraCapitalizacao" />
+      <arg value="br.com.modelagemdominio.rico.CadastroCategoriaTest#falhaDeGravacaoNaoViraDuplicidadeENaoAlteraCategoriasExistentes" />
+      <arg value="br.com.modelagemdominio.rico.CadastroCidadeTest#normalizaUfEPermiteOMesmoNomeSomenteEmUfDistinta" />
+      <arg value="br.com.modelagemdominio.rico.CadastroCidadeTest#falhaDeOutraRestricaoNaoViraDuplicidadeENaoAlteraCidadesExistentes" />
+      <arg value="br.com.modelagemdominio.rico.CadastroClienteTest#cadastraEListaComESemEnderecoERecusaDuplicidades" />
+      <arg value="br.com.modelagemdominio.rico.ConsultaClienteTest#consultaPorCodigoComESemEnderecoERefleteAlteracoesDoBanco" />
+      <arg value="br.com.modelagemdominio.rico.ConsultaClienteTest#registroInvalidoRetorna503SemAlterarDadosPersistidos" />
+      <arg value="br.com.modelagemdominio.rico.CategoriaDoProdutoTest#persisteCategoriaOpcionalEConsultaOProduto" />
+      <arg value="br.com.modelagemdominio.rico.CategoriaDoProdutoTest#falhaDeOutraChaveEstrangeiraNaoInformaCategoriaAusente" />
+      <arg value="br.com.modelagemdominio.rico.produtos.pg.PgProdutosTest#categoriaRemovidaAposValidacaoNaoPermiteGravarVinculo" />
+      <arg value="br.com.modelagemdominio.rico.CategoriaDoProdutoTest#categoriaInexistenteRetorna404SemGravarProduto" />
+      <arg value="br.com.modelagemdominio.rico.CategoriaDoProdutoTest#trocaSomenteACategoriaEConservaOVinculoSeAProximaTrocaFalhar" />
+      <arg value="br.com.modelagemdominio.rico.CategoriaDoProdutoTest#combinaFiltrosSemTratarCaracteresDoNomeComoCuringas" />
+      <arg value="br.com.modelagemdominio.rico.CategoriaDoProdutoTest#renomeiaCategoriaVinculadaPreservandoProdutoEHistorico" />
+      <arg value="br.com.modelagemdominio.rico.ListaCategoriasTest#listaPorCodigoMesmoQuandoOsRegistrosSaoInseridosEmOutraOrdem" />
+      <arg value="br.com.modelagemdominio.rico.ListaCidadesTest#listaPorCodigoEAplicaFiltroDeNome" />
+      <arg value="br.com.modelagemdominio.rico.ListaCidadesTest#combinaNomeEUfMantendoOsCodigosECamposDasCidades" />
+    </java>
+  </target>
+</project>

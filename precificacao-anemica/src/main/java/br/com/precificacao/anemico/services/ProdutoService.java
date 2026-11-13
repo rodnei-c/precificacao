@@ -1,16 +1,24 @@
 package br.com.precificacao.anemico.services;
 
-import br.com.precificacao.anemico.repositories.ProdutoRepository;
+import br.com.precificacao.anemico.dtos.AlteracaoCategoriaRequisicao;
+import br.com.precificacao.anemico.dtos.AlteracaoPrecificacaoRequisicao;
+import br.com.precificacao.anemico.dtos.CadastroProdutoRequisicao;
+import br.com.precificacao.anemico.enums.ModalidadePrecificacao;
+import br.com.precificacao.anemico.models.AlteracaoPrecificacao;
+import br.com.precificacao.anemico.models.Produto;
+import java.util.List;
 
-import java.util.Objects;
+public interface ProdutoService {
 
-public class ProdutoService {
+  Produto cadastrar(CadastroProdutoRequisicao requisicao);
 
-    private final ProdutoRepository produtoRepository;
-    private final PrecificacaoService precificacaoService;
+  Produto buscarPorCodigo(Long codigo);
 
-    public ProdutoService(ProdutoRepository produtoRepository, PrecificacaoService precificacaoService) {
-        this.produtoRepository = Objects.requireNonNull(produtoRepository, "produtoRepository");
-        this.precificacaoService = Objects.requireNonNull(precificacaoService, "precificacaoService");
-    }
+  List<Produto> listar(String nome, ModalidadePrecificacao modalidade, Long categoria);
+
+  Produto alterarPrecificacao(Long codigo, AlteracaoPrecificacaoRequisicao requisicao);
+
+  Produto alterarCategoria(Long codigo, AlteracaoCategoriaRequisicao requisicao);
+
+  List<AlteracaoPrecificacao> historicoPrecificacao(Long codigo);
 }

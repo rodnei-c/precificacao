@@ -1,11 +1,20 @@
 package br.com.precificacao.anemico;
 
-public final class AplicacaoAnemica {
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
 
-    private AplicacaoAnemica() {
-    }
+/**
+ * Inicia a API HTTP da implementação baseada em modelo anêmico.
+ */
+@SpringBootApplication
+public class AplicacaoAnemica {
 
-    public static void main(String[] args) {
-        System.out.println("teste");
-    }
+  /**
+   * Inicializa o servidor e executa as migrações do banco configurado.
+   *
+   * @param args argumentos de inicialização
+   */
+  public static void main(String[] args) {
+    SpringApplication.run(AplicacaoAnemica.class, args);
+  }
 }

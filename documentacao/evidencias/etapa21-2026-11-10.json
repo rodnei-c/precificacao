@@ -1,0 +1,274 @@
+{
+  "etapa": 21,
+  "data": "2026-11-10",
+  "status": "concluida",
+  "baseGit": "31e82228043bb2253cd76cc0f5c85ea5e63b6678",
+  "observacaoCheckout": "Validação inclui alterações locais; o commit base não descreve sozinho os arquivos executados.",
+  "ambiente": {
+    "java": "17.0.12",
+    "node": "12.22.12",
+    "postgres": "14-alpine",
+    "bancoDesenvolvimentoUtilizado": false,
+    "maven": "3.9.9"
+  },
+  "junit": [
+    {
+      "modulo": "precificacao-anemica",
+      "modo": "unitario",
+      "suites": 5,
+      "casos": 84,
+      "falhas": 0,
+      "erros": 0,
+      "ignorados": 0,
+      "diretorio": "precificacao-anemica/target/surefire-reports"
+    },
+    {
+      "modulo": "precificacao-anemica",
+      "modo": "completo",
+      "suites": 9,
+      "casos": 159,
+      "falhas": 0,
+      "erros": 0,
+      "ignorados": 0,
+      "diretorio": "C:\\Java\\Workspace\\precificacao\\precificacao-anemica\\target\\surefire-integracao\\20261110-180049663"
+    },
+    {
+      "modulo": "precificacao-rica",
+      "modo": "unitario",
+      "suites": 22,
+      "casos": 256,
+      "falhas": 0,
+      "erros": 0,
+      "ignorados": 0,
+      "diretorio": "precificacao-rica/target/surefire-reports"
+    },
+    {
+      "modulo": "precificacao-rica",
+      "modo": "completo",
+      "suites": 36,
+      "casos": 368,
+      "falhas": 0,
+      "erros": 0,
+      "ignorados": 0,
+      "diretorio": "C:\\Java\\Workspace\\precificacao\\precificacao-rica\\target\\surefire-integracao\\20261110-180049663"
+    }
+  ],
+  "criterioContagem": "Completo inclui unitários. Nos relatórios unitários, somente as classes listadas no log desta execução foram somadas.",
+  "http": {
+    "paresComparados": 150,
+    "execucoes": [
+      {
+        "verificacoesPmTest": 108,
+        "requisicoes": 75,
+        "identificador": "ff0fc5e83fe1689e2b4dc1a7256cc838",
+        "modelo": "anemico",
+        "codigosGerados": {
+          "produtoFixo": 4,
+          "cidade": 1,
+          "faturaFixa": 3
+        },
+        "falhas": 0,
+        "rodada": 1
+      },
+      {
+        "verificacoesPmTest": 108,
+        "requisicoes": 75,
+        "identificador": "ff0fc5e83fe1689e2b4dc1a7256cc838",
+        "modelo": "rico",
+        "codigosGerados": {
+          "produtoFixo": 1004,
+          "cidade": 1001,
+          "faturaFixa": 1003
+        },
+        "falhas": 0,
+        "rodada": 1
+      },
+      {
+        "verificacoesPmTest": 108,
+        "requisicoes": 75,
+        "identificador": "18bcf3adcb6ec019c7d75ec4daedead1",
+        "modelo": "anemico",
+        "codigosGerados": {
+          "produtoFixo": 9,
+          "cidade": 3,
+          "faturaFixa": 7
+        },
+        "falhas": 0,
+        "rodada": 2
+      },
+      {
+        "verificacoesPmTest": 108,
+        "requisicoes": 75,
+        "identificador": "18bcf3adcb6ec019c7d75ec4daedead1",
+        "modelo": "rico",
+        "codigosGerados": {
+          "produtoFixo": 1009,
+          "cidade": 1003,
+          "faturaFixa": 1007
+        },
+        "falhas": 0,
+        "rodada": 2
+      }
+    ],
+    "fim": "2026-11-10T18:06:22.752Z",
+    "sha256RelatorioLocal": "72b4adc0fb52b4382bd314f6998ff718ecbd90c1f8f435ea204d699f16dbc049",
+    "sucesso": true,
+    "aplicacaoPostmanExecutada": false,
+    "verificacoesPmTest": 432,
+    "diferencasTextoErro": [
+      {
+        "rodada": 1,
+        "nome": "Rejeitar PATCH vazio",
+        "anemico": {
+          "detail": "Informe ao menos um campo para atualizar o cliente.",
+          "instance": "/api/clientes/1",
+          "status": 400,
+          "title": "Dados inválidos"
+        },
+        "rico": {
+          "title": "Dados inválidos",
+          "status": 400,
+          "detail": "Informe o e-mail, telefone ou endereço a ser atualizado.",
+          "instance": "/api/clientes/1001"
+        }
+      },
+      {
+        "rodada": 1,
+        "nome": "Rejeitar campo desconhecido no PATCH",
+        "anemico": {
+          "detail": "Confira o formato do JSON e os parâmetros da URL.",
+          "instance": "/api/clientes/1",
+          "status": 400,
+          "title": "Formato inválido"
+        },
+        "rico": {
+          "title": "Formato inválido",
+          "status": 400,
+          "detail": "Confira o formato do JSON.",
+          "instance": "/api/clientes/1001"
+        }
+      },
+      {
+        "rodada": 1,
+        "nome": "Rejeitar código zero",
+        "anemico": {
+          "detail": "O código do cliente deve ser maior que zero.",
+          "instance": "/api/clientes/0",
+          "status": 400,
+          "title": "Dados inválidos"
+        },
+        "rico": {
+          "title": "Dados inválidos",
+          "status": 400,
+          "detail": "Informe um código de cliente inteiro positivo válido.",
+          "instance": "/api/clientes/0"
+        }
+      },
+      {
+        "rodada": 1,
+        "nome": "Rejeitar código não numérico",
+        "anemico": {
+          "detail": "Confira o formato do JSON e os parâmetros da URL.",
+          "instance": "/api/clientes/abc",
+          "status": 400,
+          "title": "Formato inválido"
+        },
+        "rico": {
+          "title": "Dados inválidos",
+          "status": 400,
+          "detail": "Informe um código de cliente inteiro positivo válido.",
+          "instance": "/api/clientes/abc"
+        }
+      },
+      {
+        "rodada": 1,
+        "nome": "Rejeitar desconto inicial maior que subtotal na simulação",
+        "anemico": {
+          "detail": "Informe um desconto fixo de até duas casas decimais que não ultrapasse o subtotal.",
+          "instance": "/api/faturas/simulacao",
+          "status": 400,
+          "title": "Dados inválidos"
+        },
+        "rico": {
+          "title": "Dados inválidos",
+          "status": 400,
+          "detail": "O desconto fixo não pode ultrapassar o subtotal inicial da fatura.",
+          "instance": "/api/faturas/simulacao"
+        }
+      }
+    ],
+    "newmanExecutado": false,
+    "inicio": "2026-11-10T18:06:20.812Z",
+    "requisicoes": 300,
+    "executor": "Node.js: HTTP e subconjunto pm usado na coleção",
+    "relatorioLocal": "target/validacao-etapa21/equivalencia.json"
+  },
+  "bancosHttp": {
+    "rico": {
+      "faturas": 8,
+      "categorias": 4,
+      "produtos": 10,
+      "migracoes": 10,
+      "clientes": 4,
+      "cidades": 4
+    },
+    "anemico": {
+      "faturas": 8,
+      "categorias": 4,
+      "produtos": 10,
+      "migracoes": 8,
+      "clientes": 4,
+      "cidades": 4
+    }
+  },
+  "regressaoUtf8": {
+    "depois": "Passou com decodificação UTF-8 explícita.",
+    "jvmFilha": "windows-1252",
+    "antes": "Falha reproduzida com Href e nome corrompido.",
+    "logAntes": "precificacao-rica/target/etapa21-antes-utf8.log",
+    "teste": "FiltroProdutosUtf8Test"
+  },
+  "artefatos": [
+    {
+      "sha256": "af6d6374b7b2bcbc619dec30f5d3ca328ae8acc82067f6938dcbe6d4a8e9958a",
+      "arquivo": "documentacao/postman/precificacao-rica.postman_collection.json"
+    },
+    {
+      "sha256": "99ecbbe273f44467c45006baa37002f3886ac8a214c1e65e636360766ce2620c",
+      "arquivo": "verificacao/equivalencia.js"
+    },
+    {
+      "sha256": "aa73da7d703df0668ecf88f8f22d59a4184d0a8ae7efa0ec4bad1aaae89ec71c",
+      "arquivo": "precificacao-rica/src/main/java/br/com/modelagemdominio/rico/produtos/http/TkListaProdutos.java"
+    },
+    {
+      "sha256": "560de95aeb0c0ad1f426df9369beddfad99696a757801e1b65f416f7c32b800e",
+      "arquivo": "precificacao-rica/src/test/java/br/com/modelagemdominio/rico/produtos/http/FiltroProdutosUtf8Test.java"
+    },
+    {
+      "sha256": "6acb7620582e82dd50dd07eb9e56a7ac2f9fdfba6db0a9e674dbe30ef398ca16",
+      "arquivo": "precificacao-rica/src/test/ant/integracao.xml"
+    },
+    {
+      "sha256": "d70c1e236a7143837621f1d8fbfbf6c1e9ac7c6d327be35bb0cc7ea8cce6e49e",
+      "arquivo": "precificacao-anemica/target/precificacao-anemica-1.0.0-SNAPSHOT.jar"
+    },
+    {
+      "sha256": "7122464c8fa45ab63a7f611d89d64668f23af182127f19c286511f08a04e5a3b",
+      "arquivo": "precificacao-rica/target/precificacao-rica-1.0.0-SNAPSHOT.jar"
+    }
+  ],
+  "limpeza": {
+    "container": "precificacao-equiparacao-20261110",
+    "servidorRemovido": true,
+    "instante": "2026-11-10T15:09:36.2524059-03:00",
+    "apisEncerradas": true,
+    "bancoDesenvolvimentoUtilizado": false
+  },
+  "limites": [
+    "Resultados restritos aos cenários executados.",
+    "Há diferenças de mensagens e um título de erro; não se afirma igualdade textual.",
+    "Não houve medição de desempenho ou manutenibilidade.",
+    "Regra de subtotal mínimo de R$ 200 não implementada."
+  ]
+}

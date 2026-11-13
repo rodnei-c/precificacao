@@ -1,17 +1,19 @@
 package br.com.precificacao.anemico.services;
 
-import br.com.precificacao.anemico.repositories.FaturaRepository;
-import br.com.precificacao.anemico.repositories.ProdutoRepository;
+import br.com.precificacao.anemico.dtos.CadastroFaturaRequisicao;
+import br.com.precificacao.anemico.dtos.FaturaResposta;
+import br.com.precificacao.anemico.dtos.FaturaResumo;
+import br.com.precificacao.anemico.dtos.ValoresFaturaResposta;
+import java.time.LocalDate;
+import java.util.List;
 
-import java.util.Objects;
+public interface FaturaService {
 
-public class FaturaService {
+  FaturaResposta cadastrar(CadastroFaturaRequisicao requisicao);
 
-    private final FaturaRepository faturaRepository;
-    private final ProdutoRepository produtoRepository;
+  ValoresFaturaResposta simular(CadastroFaturaRequisicao requisicao);
 
-    public FaturaService(FaturaRepository faturaRepository, ProdutoRepository produtoRepository) {
-        this.faturaRepository = Objects.requireNonNull(faturaRepository, "faturaRepository");
-        this.produtoRepository = Objects.requireNonNull(produtoRepository, "produtoRepository");
-    }
+  FaturaResposta buscarPorCodigo(Long codigo);
+
+  List<FaturaResumo> listar(LocalDate inicio, LocalDate fim, Long codigoCliente);
 }

@@ -12,6 +12,7 @@ public class Produto {
     private BigDecimal precoVenda;
     private BigDecimal percentual;
     private ModalidadePrecificacao modalidadePrecificacao;
+    private Long codigoCategoria;
 
     public Produto() {
     }
@@ -72,5 +73,13 @@ public class Produto {
 
     public void setModalidadePrecificacao(ModalidadePrecificacao modalidadePrecificacao) {
         this.modalidadePrecificacao = modalidadePrecificacao;
+    }
+
+    public Long getCodigoCategoria() {
+        return codigoCategoria;
+    }
+
+    public void setCodigoCategoria(Long codigoCategoria) {
+        this.codigoCategoria = codigoCategoria;
     }
 }
