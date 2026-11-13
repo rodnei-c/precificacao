@@ -1,0 +1,181 @@
+package br.com.modelagemdominio.rico.produtos.precificacao;
+
+import br.com.modelagemdominio.rico.produtos.Dinheiro;
+import br.com.modelagemdominio.rico.produtos.ModalidadePrecificacao;
+import br.com.modelagemdominio.rico.produtos.Percentual;
+import br.com.modelagemdominio.rico.produtos.Precificacao;
+import br.com.modelagemdominio.rico.produtos.ValorInvalido;
+import java.math.BigDecimal;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+
+class PrecificacoesTest {
+
+  @ParameterizedTest
+  @CsvSource({"ACRESCIMO_SOBRE_CUSTO, 120.00", "MARGEM_SOBRE_VENDA, 125.00"})
+  void calculaVenda(ModalidadePrecificacao modalidade, BigDecimal venda) throws PrecificacaoInvalida {
+    Precificacao resultado = calculo(modalidade)
+      .comCustoEPercentual(new BigDecimal("100"), new BigDecimal("20")).precificacao();
+
+    assertEquals(esperada(modalidade, venda), resultado);
+  }
+
+  @ParameterizedTest
+  @CsvSource({"ACRESCIMO_SOBRE_CUSTO, 120.00", "MARGEM_SOBRE_VENDA, 125.00"})
+  void calculaCusto(ModalidadePrecificacao modalidade, BigDecimal venda) throws PrecificacaoInvalida {
+    Precificacao resultado = calculo(modalidade)
+      .comVendaEPercentual(venda, new BigDecimal("20")).precificacao();
+
+    assertEquals(esperada(modalidade, venda), resultado);
+  }
+
+  @ParameterizedTest
+  @CsvSource({"ACRESCIMO_SOBRE_CUSTO, 120.00", "MARGEM_SOBRE_VENDA, 125.00"})
+  void calculaPercentual(ModalidadePrecificacao modalidade, BigDecimal venda) throws PrecificacaoInvalida {
+    Precificacao resultado = calculo(modalidade)
+      .comCustoEVenda(new BigDecimal("100"), venda).precificacao();
+
+    assertEquals(esperada(modalidade, venda), resultado);
+  }
+
+  @ParameterizedTest
+  @CsvSource({"1.5, 1.02", "2.5, 1.02"})
+  void arredondaEmpatesParaOPar(BigDecimal percentual, BigDecimal venda) throws PrecificacaoInvalida {
+    Precificacao resultado = new Precificacoes(new AcrescimoSobreCusto())
+      .comCustoEPercentual(BigDecimal.ONE, percentual).precificacao();
+
+    assertEquals(new Dinheiro(venda), resultado.precoVenda());
+  }
+
+  @Test
+  void arredondaPercentualEmQuatroCasas() throws PrecificacaoInvalida {
+    Precificacao resultado = new Precificacoes(new AcrescimoSobreCusto())
+      .comCustoEVenda(new BigDecimal("3"), new BigDecimal("4")).precificacao();
+
+    assertEquals(new Percentual(new BigDecimal("33.3333")), resultado.percentual());
+  }
+
+  @Test
+  void aceitaVendaIgualAoCustoComPercentualZero() throws PrecificacaoInvalida {
+    Precificacao resultado = new Precificacoes(new MargemSobreVenda())
+      .comCustoEVenda(new BigDecimal("100"), new BigDecimal("100")).precificacao();
+
+    assertEquals(new Percentual(new BigDecimal("0.0000")), resultado.percentual());
+  }
+
+  @ParameterizedTest
+  @CsvSource({
+    "ACRESCIMO_SOBRE_CUSTO, 0, 20",
+    "ACRESCIMO_SOBRE_CUSTO, 100, -1",
+    "ACRESCIMO_SOBRE_CUSTO, 100, 20.00001",
+    "ACRESCIMO_SOBRE_CUSTO, 99999999999999999.99, 1",
+    "MARGEM_SOBRE_VENDA, 100, 100",
+    "MARGEM_SOBRE_VENDA, 100, 0.0040"
+  })
+  void rejeitaCustoPercentualOuVendaInvalidos(
+    ModalidadePrecificacao modalidade, BigDecimal custo, BigDecimal percentual
+  ) {
+    assertThrows(PrecificacaoInvalida.class,
+      () -> calculo(modalidade).comCustoEPercentual(custo, percentual));
+  }
+
+  @ParameterizedTest
+  @CsvSource({"100, 100", "0.01, 99.9999", "100, 0.0040"})
+  void rejeitaMargemInformadaOuCustoCalculadoInvalidos(BigDecimal venda, BigDecimal percentual) {
+    Precificacoes precificacoes = new Precificacoes(new MargemSobreVenda());
+
+    assertThrows(PrecificacaoInvalida.class,
+      () -> precificacoes.comVendaEPercentual(venda, percentual));
+  }
+
+  @Test
+  void rejeitaMargemArredondadaParaCem() {
+    Precificacoes precificacoes = new Precificacoes(new MargemSobreVenda());
+
+    assertThrows(PrecificacaoInvalida.class,
+      () -> precificacoes.comCustoEVenda(new BigDecimal("0.01"), new BigDecimal("100000000")));
+  }
+
+  @ParameterizedTest
+  @CsvSource({"ACRESCIMO_SOBRE_CUSTO, 138.69", "MARGEM_SOBRE_VENDA, 140.84"})
+  void aplicaFracaoExataNasDuasDirecoes(ModalidadePrecificacao modalidade, BigDecimal venda)
+    throws PrecificacaoInvalida {
+    var calculo = calculo(modalidade);
+    var percentual = new BigDecimal("12.3456");
+
+    assertEquals(new Dinheiro(venda),
+      calculo.comCustoEPercentual(new BigDecimal("123.45"), percentual).precificacao().precoVenda());
+    assertEquals(new Dinheiro("123.45"),
+      calculo.comVendaEPercentual(venda, percentual).precificacao().custo());
+  }
+
+  @Test
+  void mantemDescricaoDoCampoAoTraduzirFalhaDoValor() {
+    var calculo = new Precificacoes(new AcrescimoSobreCusto());
+
+    var custo = assertThrows(PrecificacaoInvalida.class,
+      () -> calculo.comCustoEPercentual(new BigDecimal("1.001"), BigDecimal.ZERO));
+    var venda = assertThrows(PrecificacaoInvalida.class,
+      () -> calculo.comVendaEPercentual(new BigDecimal("1.001"), BigDecimal.ZERO));
+
+    assertEquals("Informe o custo com até duas casas decimais.", custo.getMessage());
+    assertEquals("Informe o preço de venda com até duas casas decimais.", venda.getMessage());
+    assertInstanceOf(ValorInvalido.class, custo.getCause());
+    assertInstanceOf(ValorInvalido.class, venda.getCause());
+  }
+
+  @Test
+  void rejeitaAusenciaComoFalhaDePrecificacaoNasTresCombinacoes() {
+    var calculo = new Precificacoes(new AcrescimoSobreCusto());
+
+    assertThrows(PrecificacaoInvalida.class, () -> calculo.comCustoEPercentual(null, BigDecimal.ZERO));
+    assertThrows(PrecificacaoInvalida.class, () -> calculo.comVendaEPercentual(BigDecimal.ONE, null));
+    assertThrows(PrecificacaoInvalida.class, () -> calculo.comCustoEVenda(BigDecimal.ONE, null));
+  }
+
+  @Test
+  void verificaOrdemAntesDeCalcularPercentual() {
+    var calculo = new Precificacoes(new AcrescimoSobreCusto());
+    var falha = assertThrows(PrecificacaoInvalida.class,
+      () -> calculo.comCustoEVenda(new BigDecimal("100"), new BigDecimal("99.99")));
+
+    assertEquals("O preço de venda não pode ser inferior ao custo.", falha.getMessage());
+    assertNull(falha.getCause());
+  }
+
+  @Test
+  void aplicaEspecificacaoAosPrecosAposArredondamento() throws PrecificacaoInvalida {
+    var calculo = new Precificacoes(new AcrescimoSobreCusto());
+    var custo = new BigDecimal("100");
+    var falha = assertThrows(PrecificacaoInvalida.class,
+      () -> calculo.comCustoEPercentual(custo, new BigDecimal("0.0050")));
+
+    assertEquals("O percentual positivo deve produzir preço de venda maior que o custo após o arredondamento.",
+      falha.getMessage());
+    assertEquals(falha.getMessage(), assertInstanceOf(IllegalArgumentException.class, falha.getCause()).getMessage());
+    assertEquals(new Dinheiro("100.01"),
+      calculo.comCustoEPercentual(custo, new BigDecimal("0.0051")).precificacao().precoVenda());
+  }
+
+  private Precificacoes calculo(ModalidadePrecificacao modalidade) {
+    return new Precificacoes(switch (modalidade) {
+      case ACRESCIMO_SOBRE_CUSTO -> new AcrescimoSobreCusto();
+      case MARGEM_SOBRE_VENDA -> new MargemSobreVenda();
+    });
+  }
+
+  private Precificacao esperada(ModalidadePrecificacao modalidade, BigDecimal venda) {
+    return new Precificacao(
+      new Dinheiro(new BigDecimal("100.00")),
+      new Dinheiro(venda),
+      new Percentual(new BigDecimal("20.0000")),
+      modalidade
+    );
+  }
+}

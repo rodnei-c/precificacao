@@ -1,25 +1,27 @@
 # Documentação do estudo
 
-Este diretório fica reservado aos casos de uso, diagramas e registros da comparação.
+Este diretório reúne as coleções Postman, as evidências de execução e o enunciado da atividade de manutenção dos dois modelos.
 
-## Planejamento atual
+## Conteúdo disponível
 
-Os cinco casos de uso propostos são:
+| Arquivo | Conteúdo |
+| --- | --- |
+| [Coleção do anêmico](postman/precificacao-anemica.postman_collection.json) | 59 requisições em cinco pastas; `baseUrl` padrão `http://localhost:8080`. |
+| [Coleção do rico](postman/precificacao-rica.postman_collection.json) | 75 requisições em seis pastas; `baseUrl` padrão `http://localhost:8081`. |
+| [Resultados de testes e comparação](evidencias/etapa21-2026-11-10.json) | Ambiente, resultados JUnit e comparação HTTP. |
+| [Resultados de testes do rico e comparação HTTP](evidencias/modelagem-etapa34-2026-11-10.json) | Resultados JUnit do rico e comparação de 150 pares de respostas HTTP. |
+| [Atividade de manutenção](Atividade-Taxa-por-Forma-de-Pagamento.md) | Enunciado da taxa por forma de pagamento na simulação de faturas. |
 
-1. Cadastrar produto.
-2. Consultar produtos.
-3. Atualizar a precificação de um produto.
-4. Criar fatura.
-5. Consultar faturas.
+As coleções preparam seus dados e guardam os códigos gerados em variáveis. Execute cada coleção desde a primeira requisição e confira se um ambiente do Postman está sobrescrevendo `baseUrl`.
 
-As descrições completas ainda precisam ser elaboradas. O primeiro caso previsto para detalhamento é Cadastrar produto.
+## APIs e testes
 
-O conjunto inicial de diagramas proposto contém um diagrama de casos de uso comum às duas versões, dois diagramas de classes e dois de sequência. Os diagramas de sequência devem representar a mesma operação, ainda a confirmar.
+Ambos os módulos possuem produtos, precificação, histórico, categorias, cidades, clientes e faturas. As instruções de configuração, os endpoints e os testes ficam nos READMEs do [anêmico](../precificacao-anemica/README.md) e do [rico](../precificacao-rica/README.md).
 
-## Comparação prevista
+As evidências JSON são registros datados de execuções anteriores. As contagens de testes não representam uma quantidade fixa nem uma medição de manutenibilidade. Para repetir a comparação e conhecer suas limitações, consulte o [executor HTTP](../verificacao/README.md).
 
-O cenário de manutenção aprovado acrescenta uma condição ao desconto percentual: ele só é aplicado quando a soma dos itens, antes do abatimento, é igual ou superior a R$ 200,00.
+## Cenário de manutenção
 
-A comparação considera a localização da regra, os componentes necessários para compreendê-la, o alcance da alteração e a preservação dos demais comportamentos. Os casos funcionais devem contemplar valores abaixo, exatamente no mínimo e acima dele.
+A atividade de [taxa por forma de pagamento na simulação de faturas](Atividade-Taxa-por-Forma-de-Pagamento.md) contém regras, fluxo, pontos de alteração e critérios de validação para os dois modelos. Ela envolve somente a simulação, com três tipos de cobrança, e deve ser realizada em uma branch própria criada a partir da `anemico`. A taxa foi implementada nos dois módulos.
 
-Esse cenário ainda não foi implementado ou executado. Os arquivos futuros devem distinguir decisões de projeto, código implementado e resultados efetivamente observados.
+Os registros do estudo devem distinguir decisões de projeto, código implementado e resultados efetivamente observados.

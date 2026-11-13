@@ -1,4 +1,8 @@
 package br.com.precificacao.anemico.services;
 
-public class PrecificacaoService {
+import br.com.precificacao.anemico.models.Produto;
+
+public interface PrecificacaoService {
+
+  void precificar(Produto produto);
 }

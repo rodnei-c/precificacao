@@ -1,0 +1,1735 @@
+{
+  "info": {
+    "name": "Precificação anêmica - produtos, clientes, cidades, categorias e faturas",
+    "description": "Execute a coleção na ordem, começando pela preparação. A primeira requisição gera nomes, e-mails e CPFs de exemplo novos. Os códigos retornados são guardados como variáveis. O PATCH mantém campos omitidos, remove telefone/endereço com null e substitui o endereço inteiro quando recebe um objeto. Não contém credenciais de banco.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080",
+      "type": "string"
+    },
+    {
+      "key": "identificadorExecucao",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "cpfCliente",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "cpfClienteOutro",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "codigoCidade",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "codigoOutraCidade",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "codigoCategoria",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "codigoOutraCategoria",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "codigoCliente",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "codigoOutroCliente",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "codigoProduto",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "codigoFatura",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "codigoFaturaSemOpcionais",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "totalSimulado",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "1 - Preparar cidades, categorias e clientes",
+      "item": [
+        {
+          "name": "Cadastrar cidade no PR e iniciar os dados desta execução",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/cidades",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Cidade {{identificadorExecucao}}\",\n  \"uf\": \"pr\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set('identificadorExecucao', pm.variables.replaceIn('{{$guid}}').replace(/-/g, ''));",
+                  "function cpf(base) {",
+                  "  let digitos = String(base);",
+                  "  for (let tamanho = 9; tamanho <= 10; tamanho++) {",
+                  "    let soma = 0;",
+                  "    for (let i = 0; i < tamanho; i++) { soma += Number(digitos[i]) * (tamanho + 1 - i); }",
+                  "    const resto = soma % 11;",
+                  "    digitos += resto < 2 ? 0 : 11 - resto;",
+                  "  }",
+                  "  return digitos;",
+                  "}",
+                  "const baseCpf = 100000000 + Math.floor(Math.random() * 899000000);",
+                  "pm.collectionVariables.set('cpfCliente', cpf(baseCpf));",
+                  "pm.collectionVariables.set('cpfClienteOutro', cpf(baseCpf + 1));",
+                  "['codigoCidade', 'codigoOutraCidade', 'codigoCategoria', 'codigoOutraCategoria', 'codigoCliente', 'codigoOutroCliente', 'codigoProduto', 'codigoFatura', 'codigoFaturaSemOpcionais', 'totalSimulado'].forEach(function (chave) { pm.collectionVariables.set(chave, ''); });"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 201', function () { pm.response.to.have.status(201); });",
+                  "if (pm.response.code === 201) { pm.collectionVariables.set('codigoCidade', pm.response.json().codigo); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Cadastrar cidade de mesmo nome em SC",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/cidades",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Cidade {{identificadorExecucao}}\",\n  \"uf\": \"SC\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 201', function () { pm.response.to.have.status(201); });",
+                  "if (pm.response.code === 201) { pm.collectionVariables.set('codigoOutraCidade', pm.response.json().codigo); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Listar cidades",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/cidades"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Filtrar cidades por trecho do nome",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/cidades?nome=Cidade%20{{identificadorExecucao}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Duas cidades de mesmo nome', function () { pm.expect(pm.response.json()).to.have.lengthOf(2); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Filtrar cidades por UF em minúsculas",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/cidades?uf=pr"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Todas no PR', function () { pm.response.json().forEach(function (cidade) { pm.expect(cidade.uf).to.eql('PR'); }); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Combinar nome e UF e usar o código encontrado",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/cidades?nome=Cidade%20{{identificadorExecucao}}&uf=pr"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Uma cidade no PR', function () { const cidades = pm.response.json(); pm.expect(cidades).to.have.lengthOf(1); pm.expect(cidades[0].uf).to.eql('PR'); pm.collectionVariables.set('codigoCidade', cidades[0].codigo); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Busca de cidade sem correspondências",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/cidades?nome=ausente{{identificadorExecucao}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Lista vazia', function () { pm.expect(pm.response.json()).to.eql([]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Rejeitar UF inválida",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/cidades?uf=XX"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 400', function () { pm.response.to.have.status(400); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Cadastrar categoria",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/categorias",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Periféricos {{identificadorExecucao}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 201', function () { pm.response.to.have.status(201); });",
+                  "if (pm.response.code === 201) { pm.collectionVariables.set('codigoCategoria', pm.response.json().codigo); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Cadastrar outra categoria para testar duplicidade",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/categorias",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Outra categoria {{identificadorExecucao}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 201', function () { pm.response.to.have.status(201); });",
+                  "if (pm.response.code === 201) { pm.collectionVariables.set('codigoOutraCategoria', pm.response.json().codigo); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Cadastrar cliente com endereço",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/clientes",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Cliente de exemplo\",\n  \"cpf\": \"{{cpfCliente}}\",\n  \"email\": \"cliente{{identificadorExecucao}}@example.com\",\n  \"telefone\": \"(41) 99999-0000\",\n  \"endereco\": {\n    \"cep\": \"80000-000\",\n    \"logradouro\": \"Rua de exemplo\",\n    \"numero\": \"12A\",\n    \"bairro\": \"Centro\",\n    \"complemento\": \"Sala 2\",\n    \"codigoCidade\": {{codigoCidade}}\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 201', function () { pm.response.to.have.status(201); });",
+                  "if (pm.response.code === 201) { pm.collectionVariables.set('codigoCliente', pm.response.json().codigo); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Cadastrar outro cliente sem telefone e endereço",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/clientes",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Outro cliente de exemplo\",\n  \"cpf\": \"{{cpfClienteOutro}}\",\n  \"email\": \"outro{{identificadorExecucao}}@example.com\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 201', function () { pm.response.to.have.status(201); });",
+                  "if (pm.response.code === 201) { pm.collectionVariables.set('codigoOutroCliente', pm.response.json().codigo); }"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "2 - Produtos e histórico",
+      "item": [
+        {
+          "name": "Cadastrar produto com acréscimo de 20%",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/produtos",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Produto {{identificadorExecucao}}\",\n  \"modalidadePrecificacao\": \"ACRESCIMO_SOBRE_CUSTO\",\n  \"codigoCategoria\": {{codigoCategoria}},\n  \"custo\": 100,\n  \"percentual\": 20\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 201', function () { pm.response.to.have.status(201); });",
+                  "if (pm.response.code === 201) { pm.collectionVariables.set('codigoProduto', pm.response.json().codigo); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Consultar produto cadastrado",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/produtos/{{codigoProduto}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Cadastrar com cálculo inverso do custo",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/produtos",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Produto inverso {{identificadorExecucao}}\",\n  \"modalidadePrecificacao\": \"MARGEM_SOBRE_VENDA\",\n  \"codigoCategoria\": {{codigoCategoria}},\n  \"precoVenda\": 125,\n  \"percentual\": 20\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 201', function () { pm.response.to.have.status(201); });",
+                  "if (pm.response.code === 201) { pm.collectionVariables.set('codigoProduto', pm.response.json().codigo); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Cadastrar com cálculo do percentual",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/produtos",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Produto direto {{identificadorExecucao}}\",\n  \"modalidadePrecificacao\": \"MARGEM_SOBRE_VENDA\",\n  \"codigoCategoria\": {{codigoCategoria}},\n  \"custo\": 100,\n  \"precoVenda\": 125\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 201', function () { pm.response.to.have.status(201); });",
+                  "if (pm.response.code === 201) { pm.collectionVariables.set('codigoProduto', pm.response.json().codigo); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Rejeitar três valores informados",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/produtos",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Produto {{identificadorExecucao}}\",\n  \"modalidadePrecificacao\": \"ACRESCIMO_SOBRE_CUSTO\",\n  \"codigoCategoria\": {{codigoCategoria}},\n  \"custo\": 100,\n  \"precoVenda\": 120,\n  \"percentual\": 20\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 400', function () { pm.response.to.have.status(400); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Listar produtos por nome, modalidade e categoria",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/produtos?nome={{identificadorExecucao}}&modalidadePrecificacao=MARGEM_SOBRE_VENDA&categoria={{codigoCategoria}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Vincular categoria ao produto",
+          "request": {
+            "method": "PATCH",
+            "url": "{{baseUrl}}/api/produtos/{{codigoProduto}}/categoria",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"codigoCategoria\": {{codigoCategoria}}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Alterar precificação",
+          "request": {
+            "method": "PATCH",
+            "url": "{{baseUrl}}/api/produtos/{{codigoProduto}}/precificacao",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"custo\": 120,\n  \"percentual\": 20\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Consultar histórico da alteração efetiva",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/produtos/{{codigoProduto}}/historico-precificacao"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Uma alteração registrada', function () { pm.expect(pm.response.json()).to.have.lengthOf(1); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Repetir os valores da precificação",
+          "request": {
+            "method": "PATCH",
+            "url": "{{baseUrl}}/api/produtos/{{codigoProduto}}/precificacao",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"custo\": 120,\n  \"percentual\": 20\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Conferir que a repetição preservou o histórico",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/produtos/{{codigoProduto}}/historico-precificacao"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Histórico preservado', function () { pm.expect(pm.response.json()).to.have.lengthOf(1); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "3 - Faturas com e sem campos opcionais",
+      "item": [
+        {
+          "name": "Simular fatura com cliente e PIX",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/faturas/simulacao",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"itens\": [\n    {\n      \"codigoProduto\": {{codigoProduto}},\n      \"quantidade\": 1.25\n    }\n  ],\n  \"desconto\": {\n    \"tipo\": \"PERCENTUAL\",\n    \"valor\": 10\n  },\n  \"codigoCliente\": {{codigoCliente}},\n  \"formaPagamento\": \"PIX\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "if (pm.response.code === 200) { pm.collectionVariables.set('totalSimulado', pm.response.json().total); }",
+                  "pm.test('Desconto percentual aplicado', function () { pm.expect(pm.response.json().total).to.eql(168.75); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Criar fatura com cliente e PIX",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/faturas",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"itens\": [\n    {\n      \"codigoProduto\": {{codigoProduto}},\n      \"quantidade\": 1.25\n    }\n  ],\n  \"desconto\": {\n    \"tipo\": \"PERCENTUAL\",\n    \"valor\": 10\n  },\n  \"codigoCliente\": {{codigoCliente}},\n  \"formaPagamento\": \"PIX\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 201', function () { pm.response.to.have.status(201); });",
+                  "if (pm.response.code === 201) { pm.collectionVariables.set('codigoFatura', pm.response.json().codigo); }",
+                  "pm.test('Mesmo total da simulação', function () { pm.expect(pm.response.json().total).to.eql(Number(pm.collectionVariables.get('totalSimulado'))); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Consultar fatura",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/faturas/{{codigoFatura}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Listar faturas pelo cliente",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/faturas?codigoCliente={{codigoCliente}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Fatura vinculada ao cliente', function () { pm.expect(pm.response.json().some(function (fatura) { return fatura.codigo === Number(pm.collectionVariables.get('codigoFatura')) && fatura.formaPagamento === 'PIX'; })).to.eql(true); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Simular sem desconto, cliente e pagamento",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/faturas/simulacao",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"itens\": [\n    {\n      \"codigoProduto\": {{codigoProduto}},\n      \"quantidade\": 1.25\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Criar sem desconto, cliente e pagamento",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/faturas",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"itens\": [\n    {\n      \"codigoProduto\": {{codigoProduto}},\n      \"quantidade\": 1.25\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 201', function () { pm.response.to.have.status(201); });",
+                  "if (pm.response.code === 201) { pm.collectionVariables.set('codigoFaturaSemOpcionais', pm.response.json().codigo); }",
+                  "pm.test('Campos opcionais ausentes', function () { pm.expect(pm.response.json()).not.to.have.property('codigoCliente'); pm.expect(pm.response.json()).not.to.have.property('formaPagamento'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Consultar fatura sem campos opcionais",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/faturas/{{codigoFaturaSemOpcionais}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Fatura consultada sem campos opcionais', function () { const fatura = pm.response.json(); pm.expect(fatura.codigo).to.eql(Number(pm.collectionVariables.get('codigoFaturaSemOpcionais'))); pm.expect(fatura).not.to.have.property('codigoCliente'); pm.expect(fatura).not.to.have.property('formaPagamento'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Listar faturas e conferir os campos opcionais omitidos",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/faturas"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Resumo sem campos opcionais', function () { const codigo = Number(pm.collectionVariables.get('codigoFaturaSemOpcionais')); const fatura = pm.response.json().find(function (atual) { return atual.codigo === codigo; }); pm.expect(fatura).to.exist; pm.expect(fatura).not.to.have.property('codigoCliente'); pm.expect(fatura).not.to.have.property('formaPagamento'); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "4 - Consultar e atualizar clientes",
+      "item": [
+        {
+          "name": "Consultar cliente com endereço",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/clientes/{{codigoCliente}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Consultar cliente sem endereço",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/clientes/{{codigoOutroCliente}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Endereço ausente', function () { pm.expect(pm.response.json().endereco).to.eql(null); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Listar clientes",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/clientes"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Atualizar somente o e-mail",
+          "request": {
+            "method": "PATCH",
+            "url": "{{baseUrl}}/api/clientes/{{codigoCliente}}",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"novo{{identificadorExecucao}}@example.com\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Rejeitar e-mail de outro cliente com capitalização diferente",
+          "request": {
+            "method": "PATCH",
+            "url": "{{baseUrl}}/api/clientes/{{codigoCliente}}",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"OUTRO{{identificadorExecucao}}@EXAMPLE.COM\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 400', function () { pm.response.to.have.status(400); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Trocar telefone preservando o e-mail",
+          "request": {
+            "method": "PATCH",
+            "url": "{{baseUrl}}/api/clientes/{{codigoCliente}}",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"telefone\": \"+55 (41) 98888-1234\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('E-mail preservado', function () { pm.expect(pm.response.json().email).to.eql('novo' + pm.collectionVariables.get('identificadorExecucao') + '@example.com'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Rejeitar telefone inválido junto de e-mail válido",
+          "request": {
+            "method": "PATCH",
+            "url": "{{baseUrl}}/api/clientes/{{codigoCliente}}",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"naogravar{{identificadorExecucao}}@example.com\",\n  \"telefone\": \"99999\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 400', function () { pm.response.to.have.status(400); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Confirmar que o PATCH rejeitado preservou os contatos",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/clientes/{{codigoCliente}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Contatos preservados', function () { const cliente = pm.response.json(); pm.expect(cliente.email).to.eql('novo' + pm.collectionVariables.get('identificadorExecucao') + '@example.com'); pm.expect(cliente.telefone).to.eql('+55 (41) 98888-1234'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Remover telefone explicitamente",
+          "request": {
+            "method": "PATCH",
+            "url": "{{baseUrl}}/api/clientes/{{codigoCliente}}",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"telefone\": null\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Telefone removido', function () { pm.expect(pm.response.json().telefone).to.eql(null); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Trocar o endereço inteiro para outra cidade",
+          "request": {
+            "method": "PATCH",
+            "url": "{{baseUrl}}/api/clientes/{{codigoCliente}}",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"endereco\": {\n    \"cep\": \"80000-000\",\n    \"logradouro\": \"Rua de exemplo\",\n    \"numero\": \"12A\",\n    \"bairro\": \"Centro\",\n    \"complemento\": \"Sala 2\",\n    \"codigoCidade\": {{codigoOutraCidade}}\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Cidade trocada', function () { pm.expect(pm.response.json().endereco.codigoCidade).to.eql(Number(pm.collectionVariables.get('codigoOutraCidade'))); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Rejeitar endereço incompleto",
+          "request": {
+            "method": "PATCH",
+            "url": "{{baseUrl}}/api/clientes/{{codigoCliente}}",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"endereco\": {\n    \"cep\": \"80000-000\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 400', function () { pm.response.to.have.status(400); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Rejeitar cidade inexistente",
+          "request": {
+            "method": "PATCH",
+            "url": "{{baseUrl}}/api/clientes/{{codigoCliente}}",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"endereco\": {\n    \"cep\": \"80000-000\",\n    \"logradouro\": \"Rua de exemplo\",\n    \"numero\": \"12A\",\n    \"bairro\": \"Centro\",\n    \"complemento\": \"Sala 2\",\n    \"codigoCidade\": 9223372036854775807\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 404', function () { pm.response.to.have.status(404); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Remover endereço explicitamente",
+          "request": {
+            "method": "PATCH",
+            "url": "{{baseUrl}}/api/clientes/{{codigoCliente}}",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"endereco\": null\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Endereço removido', function () { pm.expect(pm.response.json().endereco).to.eql(null); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Atualizar os três campos juntos",
+          "request": {
+            "method": "PATCH",
+            "url": "{{baseUrl}}/api/clientes/{{codigoCliente}}",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"final{{identificadorExecucao}}@example.com\",\n  \"telefone\": \"(48) 99999-0000\",\n  \"endereco\": {\n    \"cep\": \"80000-000\",\n    \"logradouro\": \"Rua de exemplo\",\n    \"numero\": \"12A\",\n    \"bairro\": \"Centro\",\n    \"complemento\": \"Sala 2\",\n    \"codigoCidade\": {{codigoCidade}}\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Conferir vínculo das faturas após atualizar o cliente",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/faturas?codigoCliente={{codigoCliente}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Vínculo preservado', function () { pm.expect(pm.response.json().some(function (fatura) { return fatura.codigo === Number(pm.collectionVariables.get('codigoFatura')); })).to.eql(true); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Rejeitar e-mail nulo",
+          "request": {
+            "method": "PATCH",
+            "url": "{{baseUrl}}/api/clientes/{{codigoCliente}}",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": null\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 400', function () { pm.response.to.have.status(400); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Rejeitar PATCH vazio",
+          "request": {
+            "method": "PATCH",
+            "url": "{{baseUrl}}/api/clientes/{{codigoCliente}}",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 400', function () { pm.response.to.have.status(400); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Rejeitar campo desconhecido no PATCH",
+          "request": {
+            "method": "PATCH",
+            "url": "{{baseUrl}}/api/clientes/{{codigoCliente}}",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"campoDesconhecido\": 1\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 400', function () { pm.response.to.have.status(400); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Rejeitar código zero",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/clientes/0"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 400', function () { pm.response.to.have.status(400); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Rejeitar código não numérico",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/clientes/abc"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 400', function () { pm.response.to.have.status(400); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Consultar cliente inexistente",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/clientes/9223372036854775807"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 404', function () { pm.response.to.have.status(404); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "5 - Renomear categoria e conferir os vínculos",
+      "item": [
+        {
+          "name": "Renomear categoria vinculada a produtos",
+          "request": {
+            "method": "PATCH",
+            "url": "{{baseUrl}}/api/categorias/{{codigoCategoria}}",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Acessórios {{identificadorExecucao}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Conferir produtos pelo mesmo código de categoria",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/produtos?categoria={{codigoCategoria}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Produto continua vinculado', function () { pm.expect(pm.response.json().some(function (produto) { return produto.codigo === Number(pm.collectionVariables.get('codigoProduto')); })).to.eql(true); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Conferir histórico após renomear a categoria",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/produtos/{{codigoProduto}}/historico-precificacao"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Histórico preservado', function () { pm.expect(pm.response.json()).to.have.lengthOf(1); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Rejeitar nome de outra categoria com capitalização diferente",
+          "request": {
+            "method": "PATCH",
+            "url": "{{baseUrl}}/api/categorias/{{codigoCategoria}}",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"OUTRA CATEGORIA {{identificadorExecucao}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 400', function () { pm.response.to.have.status(400); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Listar categorias e conferir o nome preservado",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/categorias"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Nome preservado após conflito', function () { const categoria = pm.response.json().find(function (categoria) { return categoria.codigo === Number(pm.collectionVariables.get('codigoCategoria')); }); pm.expect(categoria.nome).to.eql('Acessórios ' + pm.collectionVariables.get('identificadorExecucao')); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Rejeitar nome vazio",
+          "request": {
+            "method": "PATCH",
+            "url": "{{baseUrl}}/api/categorias/{{codigoCategoria}}",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \" \"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 400', function () { pm.response.to.have.status(400); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Renomear categoria inexistente",
+          "request": {
+            "method": "PATCH",
+            "url": "{{baseUrl}}/api/categorias/9223372036854775807",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Ausente\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 404', function () { pm.response.to.have.status(404); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
