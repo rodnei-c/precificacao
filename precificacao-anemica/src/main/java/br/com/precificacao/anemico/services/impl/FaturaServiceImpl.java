@@ -4,6 +4,7 @@ import br.com.precificacao.anemico.dtos.CadastroFaturaRequisicao;
 import br.com.precificacao.anemico.dtos.FaturaResposta;
 import br.com.precificacao.anemico.dtos.FaturaResumo;
 import br.com.precificacao.anemico.dtos.ValoresFaturaResposta;
+import br.com.precificacao.anemico.enums.FormaPagamento;
 import br.com.precificacao.anemico.enums.TipoDesconto;
 import br.com.precificacao.anemico.exceptions.RegistroNaoEncontradoException;
 import br.com.precificacao.anemico.exceptions.ValidacaoException;
@@ -32,6 +33,8 @@ public class FaturaServiceImpl implements FaturaService {
 
   private static final BigDecimal LIMITE_QUANTIDADE = new BigDecimal("999999999999999.9999");
   private static final BigDecimal CEM = BigDecimal.valueOf(100);
+  private static final BigDecimal TAXA_BOLETO = new BigDecimal("5.00");
+  private static final BigDecimal PERCENTUAL_CARTAO_CREDITO = new BigDecimal("0.02");
 
   private final FaturaRepository faturaRepository;
   private final ProdutoRepository produtoRepository;
@@ -48,7 +51,7 @@ public class FaturaServiceImpl implements FaturaService {
   @Override
   @Transactional(isolation = Isolation.REPEATABLE_READ)
   public FaturaResposta cadastrar(CadastroFaturaRequisicao requisicao) {
-    FaturaPreparada preparada = prepararFatura(requisicao);
+    FaturaPreparada preparada = prepararFatura(requisicao, false);
     Fatura fatura = faturaRepository.salvar(preparada.fatura());
     return resposta(fatura, preparada.valores());
   }
@@ -56,7 +59,7 @@ public class FaturaServiceImpl implements FaturaService {
   @Override
   @Transactional(readOnly = true, isolation = Isolation.REPEATABLE_READ)
   public ValoresFaturaResposta simular(CadastroFaturaRequisicao requisicao) {
-    return prepararFatura(requisicao).valores();
+    return prepararFatura(requisicao, true).valores();
   }
 
   @Override
@@ -67,7 +70,7 @@ public class FaturaServiceImpl implements FaturaService {
     }
     Fatura fatura = faturaRepository.buscarPorId(codigo)
       .orElseThrow(() -> new RegistroNaoEncontradoException("Fatura não encontrada."));
-    return resposta(fatura, calcularValores(fatura, resumirItens(fatura.getItens())));
+    return resposta(fatura, calcularValores(fatura, resumirItens(fatura.getItens()), false));
   }
 
   @Override
@@ -88,7 +91,7 @@ public class FaturaServiceImpl implements FaturaService {
     return faturaRepository.listar(inicioInclusivo, fimExclusivo, codigoCliente);
   }
 
-  private FaturaPreparada prepararFatura(CadastroFaturaRequisicao requisicao) {
+  private FaturaPreparada prepararFatura(CadastroFaturaRequisicao requisicao, boolean incluirTaxa) {
     Map<Long, BigDecimal> quantidades = quantidadesPorProduto(requisicao.itens());
     Long codigoCliente = validarCliente(requisicao.codigoCliente());
     List<ItemFatura> itens = new ArrayList<>();
@@ -106,7 +109,7 @@ public class FaturaServiceImpl implements FaturaService {
       null, null, itens, desconto == null ? null : desconto.tipo(),
       desconto == null ? null : desconto.valor(), codigoCliente, requisicao.formaPagamento()
     );
-    return new FaturaPreparada(fatura, calcularValores(fatura, resumo));
+    return new FaturaPreparada(fatura, calcularValores(fatura, resumo, incluirTaxa));
   }
 
   private Long validarCliente(BigDecimal valor) {
@@ -194,11 +197,24 @@ public class FaturaServiceImpl implements FaturaService {
     return new ResumoItens(itensResposta, subtotal);
   }
 
-  private ValoresFaturaResposta calcularValores(Fatura fatura, ResumoItens resumo) {
+  private ValoresFaturaResposta calcularValores(Fatura fatura, ResumoItens resumo, boolean incluirTaxa) {
     BigDecimal subtotal = resumo.subtotal();
     BigDecimal descontoAplicado = calcularDesconto(fatura, subtotal);
-    BigDecimal total = subtotal.subtract(descontoAplicado).setScale(2, RoundingMode.HALF_EVEN);
-    return new ValoresFaturaResposta(resumo.itens(), subtotal, descontoAplicado, total);
+    BigDecimal saldo = subtotal.subtract(descontoAplicado);
+    BigDecimal taxaPagamento = incluirTaxa ? calcularTaxa(fatura.getFormaPagamento(), saldo) : BigDecimal.ZERO;
+    BigDecimal total = saldo.add(taxaPagamento).setScale(2, RoundingMode.HALF_EVEN);
+    return new ValoresFaturaResposta(resumo.itens(), subtotal, descontoAplicado, taxaPagamento, total);
+  }
+
+  private BigDecimal calcularTaxa(FormaPagamento formaPagamento, BigDecimal saldo) {
+    if (formaPagamento == null || saldo.signum() <= 0) {
+      return BigDecimal.ZERO;
+    }
+    return switch (formaPagamento) {
+      case PIX, DINHEIRO, CARTAO_DEBITO -> BigDecimal.ZERO;
+      case BOLETO -> TAXA_BOLETO;
+      case CARTAO_CREDITO -> saldo.multiply(PERCENTUAL_CARTAO_CREDITO);
+    };
   }
 
   private FaturaResposta resposta(Fatura fatura, ValoresFaturaResposta valores) {

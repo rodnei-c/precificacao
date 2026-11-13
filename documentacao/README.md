@@ -22,6 +22,6 @@ As evidências JSON são registros datados de execuções anteriores. As contage
 
 ## Cenário de manutenção
 
-A atividade de [taxa por forma de pagamento na simulação de faturas](Atividade-Taxa-por-Forma-de-Pagamento.md) contém regras, fluxo, pontos de alteração e critérios de validação para os dois modelos. Ela envolve somente a simulação, com três tipos de cobrança, e deve ser realizada em uma branch própria criada a partir da `anemico`. A taxa ainda não foi implementada no código da aplicação.
+A atividade de [taxa por forma de pagamento na simulação de faturas](Atividade-Taxa-por-Forma-de-Pagamento.md) contém regras, fluxo, pontos de alteração e critérios de validação para os dois modelos. Ela envolve somente a simulação, com três tipos de cobrança, e deve ser realizada em uma branch própria criada a partir da `anemico`. A taxa foi implementada nos dois módulos.
 
 Os registros do estudo devem distinguir decisões de projeto, código implementado e resultados efetivamente observados.

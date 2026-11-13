@@ -40,7 +40,7 @@ Ambos utilizam PostgreSQL, criam o banco ausente quando essa opção está habil
 
 As faturas exigem itens com quantidades positivas, inclusive fracionárias. Desconto, cliente e forma de pagamento são opcionais. O cadastro grava cabeçalho e itens na mesma transação. A consulta usa os preços atuais dos produtos e preserva o desconto original; a simulação calcula sem gravar dados ou gerar código. Somente o total final da fatura é arredondado.
 
-A forma de pagamento é informativa no código atual: não acrescenta taxa ao total. A taxa na simulação é o tema da [atividade de manutenção](documentacao/Atividade-Taxa-por-Forma-de-Pagamento.md), ainda a implementar pelos participantes.
+A forma de pagamento acrescenta taxa somente na simulação: Pix, dinheiro e cartão de débito não cobram taxa, boleto cobra R$ 5,00 e cartão de crédito cobra 2% do saldo após o desconto. A atividade de manutenção foi implementada nos dois modelos.
 
 Existem diferenças pontuais entre os modelos. Por exemplo, no PATCH de cliente, telefone em branco é tratado como remoção no anêmico e rejeitado no rico; ambos aceitam `null` para remover o telefone. As respostas de erro também podem ter textos diferentes. A comparação automatizada verifica os cenários presentes na coleção, sem afirmar equivalência para toda entrada possível.
 

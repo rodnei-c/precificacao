@@ -8,10 +8,13 @@ import br.com.modelagemdominio.rico.faturas.FalhaFatura;
 import br.com.modelagemdominio.rico.faturas.Fatura;
 import br.com.modelagemdominio.rico.faturas.Faturas;
 import br.com.modelagemdominio.rico.faturas.FiltrosFaturas;
+import br.com.modelagemdominio.rico.faturas.FormaPagamento;
 import br.com.modelagemdominio.rico.faturas.ItemFatura;
 import br.com.modelagemdominio.rico.faturas.ResumoFatura;
 import br.com.modelagemdominio.rico.faturas.VinculosFatura;
 import br.com.modelagemdominio.rico.faturas.ValoresFatura;
+import br.com.modelagemdominio.rico.faturas.taxas.SemTaxa;
+import br.com.modelagemdominio.rico.faturas.taxas.TaxaPagamento;
 import br.com.modelagemdominio.rico.produtos.FalhaProduto;
 import br.com.modelagemdominio.rico.produtos.pg.PgProdutosConstantes;
 import br.com.modelagemdominio.rico.produtos.pg.ProdutosNaConexao;
@@ -87,7 +90,8 @@ public final class PgFaturas implements Faturas {
       conexao.setTransactionIsolation(Connection.TRANSACTION_REPEATABLE_READ);
       conexao.setAutoCommit(false);
       try {
-        ValoresFatura valores = this.preparar(conexao, calculo, vinculos, false).preparar();
+        TaxaPagamento taxa = vinculos.formaPagamento().map(FormaPagamento::taxa).orElseGet(SemTaxa::new);
+        ValoresFatura valores = this.preparar(conexao, calculo, vinculos, false).preparar(taxa);
         conexao.commit();
         return valores;
       } catch (SQLException | FalhaFatura | RuntimeException falha) {

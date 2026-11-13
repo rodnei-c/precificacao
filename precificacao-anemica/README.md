@@ -312,11 +312,11 @@ O `201 Created` retorna código, data de criação, itens na ordem enviada, subt
 
 ### Simular fatura
 
-Envie `POST http://localhost:8080/api/faturas/simulacao` com o mesmo JSON do cadastro. A resposta `200 OK` traz os itens com os preços atuais, o subtotal, o desconto aplicado e o total. A simulação é uma prévia e não grava uma fatura.
+Envie `POST http://localhost:8080/api/faturas/simulacao` com o mesmo JSON do cadastro. A resposta `200 OK` traz os itens com os preços atuais, o subtotal, o desconto aplicado, a taxa de pagamento e o total. A simulação é uma prévia e não grava uma fatura.
 
 O cálculo e as validações são os mesmos do cadastro. Dados inválidos retornam `400`. Produtos ou clientes inexistentes retornam `404`.
 
-A forma de pagamento não acrescenta taxa ao cálculo atual. A [atividade de manutenção](../documentacao/Atividade-Taxa-por-Forma-de-Pagamento.md) propõe implementar essa regra somente na simulação.
+A taxa depende da forma de pagamento: Pix, dinheiro e cartão de débito não cobram taxa; boleto cobra R$ 5,00; cartão de crédito cobra 2% do saldo após o desconto. A taxa é calculada apenas na simulação e o campo `taxaPagamento` sempre aparece na resposta, inclusive quando for zero.
 
 ### Listar faturas
 

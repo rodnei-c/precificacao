@@ -103,6 +103,57 @@ class CalculoFaturaTest {
   }
 
   @ParameterizedTest
+  @CsvSource(delimiter = ';', value = {
+    "PIX;0;90.00",
+    "DINHEIRO;0;90.00",
+    "CARTAO_DEBITO;0;90.00",
+    "BOLETO;5.00;95.00",
+    "CARTAO_CREDITO;1.80;91.80"
+  })
+  void aplicaTaxaDaFormaDePagamentoSobreOSaldo(
+    FormaPagamento formaPagamento, BigDecimal taxaEsperada, BigDecimal totalEsperado
+  ) throws Exception {
+    var produtos = new ProdutosDeTeste();
+    produtos.preco(1, "100.00");
+    var calculo = new CalculoFatura(List.of(item(produtos, 1, "1")),
+      new DescontoFixo(new BigDecimal("10.00")));
+
+    ValoresFatura valores = calculo.preparar(formaPagamento.taxa());
+
+    assertEquals(new BigDecimal("100.00"), valores.subtotal());
+    assertEquals(new BigDecimal("10.00"), valores.descontoAplicado());
+    assertEquals(0, taxaEsperada.compareTo(valores.taxaPagamento()));
+    assertEquals(totalEsperado, valores.total());
+  }
+
+  @ParameterizedTest
+  @EnumSource(value = FormaPagamento.class, names = {"BOLETO", "CARTAO_CREDITO"})
+  void zeraTaxaETotalQuandoODescontoConsomeTodoOSubtotal(FormaPagamento formaPagamento) throws Exception {
+    var produtos = new ProdutosDeTeste();
+    produtos.preco(1, "100.00");
+    var calculo = new CalculoFatura(List.of(item(produtos, 1, "1")),
+      new DescontoFixo(new BigDecimal("100.00")));
+
+    ValoresFatura valores = calculo.preparar(formaPagamento.taxa());
+
+    assertEquals(BigDecimal.ZERO, valores.taxaPagamento());
+    assertEquals(new BigDecimal("0.00"), valores.total());
+  }
+
+  @Test
+  void mantemTotalSemTaxaForaDaSimulacao() throws Exception {
+    var produtos = new ProdutosDeTeste();
+    produtos.preco(1, "100.00");
+    var calculo = new CalculoFatura(List.of(item(produtos, 1, "1")),
+      new DescontoFixo(new BigDecimal("10.00")));
+
+    ValoresFatura valores = calculo.preparar();
+
+    assertEquals(BigDecimal.ZERO, valores.taxaPagamento());
+    assertEquals(new BigDecimal("90.00"), valores.total());
+  }
+
+  @ParameterizedTest
   @CsvSource({"1.01, 0.50", "1.03, 0.52"})
   void aplicaArredondamentoParSomenteNoTotal(String preco, BigDecimal total) throws Exception {
     var produtos = new ProdutosDeTeste();
