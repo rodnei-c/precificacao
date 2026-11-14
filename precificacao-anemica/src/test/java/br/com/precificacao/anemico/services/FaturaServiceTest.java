@@ -1,6 +1,7 @@
 package br.com.precificacao.anemico.services;
 
 import br.com.precificacao.anemico.dtos.CadastroFaturaRequisicao;
+import br.com.precificacao.anemico.enums.FormaPagamento;
 import br.com.precificacao.anemico.enums.ModalidadePrecificacao;
 import br.com.precificacao.anemico.enums.TipoDesconto;
 import br.com.precificacao.anemico.exceptions.ValidacaoException;
@@ -18,6 +19,7 @@ import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.NullSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
@@ -35,6 +37,62 @@ class FaturaServiceTest {
   private final FaturaService servico = new FaturaServiceImpl(
     faturas, produtos, mock(ClienteRepository.class)
   );
+
+
+  @ParameterizedTest
+  @CsvSource({
+          "PIX,            0.00, 90.00",
+          "DINHEIRO,       0.00, 90.00",
+          "CARTAO_DEBITO,  0.00, 90.00",
+          "BOLETO,         5.00, 95.00",
+          "CARTAO_CREDITO, 1.80, 91.80"
+  })
+  void aplicaTaxaDaFormaDePagamentoSobreOSaldoAposODesconto(
+          FormaPagamento forma, String taxaEsperada, String totalEsperado
+  ) {
+    when(produtos.buscarPorCodigo(1L)).thenReturn(Optional.of(produto(1L, "100.00")));
+    var requisicao = simulacaoComPagamento(forma, desconto("10.00"));
+
+    var valores = servico.simular(requisicao);
+
+    conferirValor("100.00", valores.subtotal());
+    conferirValor("10.00", valores.descontoAplicado());
+    conferirValor(taxaEsperada, valores.taxaPagamento());
+    assertEquals(new BigDecimal(totalEsperado), valores.total());
+  }
+
+  @Test
+  void formaDePagamentoOmitidaNaoCobraTaxa() {
+    when(produtos.buscarPorCodigo(1L)).thenReturn(Optional.of(produto(1L, "100.00")));
+    var requisicao = simulacaoComPagamento(null, desconto("10.00"));
+
+    var valores = servico.simular(requisicao);
+
+    conferirValor("0", valores.taxaPagamento());
+    assertEquals(new BigDecimal("90.00"), valores.total());
+  }
+
+  @ParameterizedTest
+  @EnumSource(value = FormaPagamento.class, names = {"BOLETO", "CARTAO_CREDITO"})
+  void saldoZeroAnulaATaxaInclusiveNoBoleto(FormaPagamento forma) {
+    when(produtos.buscarPorCodigo(1L)).thenReturn(Optional.of(produto(1L, "100.00")));
+    var requisicao = simulacaoComPagamento(forma, desconto("100.00"));
+
+    var valores = servico.simular(requisicao);
+
+    conferirValor("0", valores.taxaPagamento());
+    assertEquals(new BigDecimal("0.00"), valores.total());
+  }
+
+  private CadastroFaturaRequisicao.Desconto desconto(String valor) {
+    return new CadastroFaturaRequisicao.Desconto(TipoDesconto.VALOR_FIXO, new BigDecimal(valor));
+  }
+
+  private CadastroFaturaRequisicao simulacaoComPagamento(
+          FormaPagamento forma, CadastroFaturaRequisicao.Desconto desconto
+  ) {
+    return new CadastroFaturaRequisicao(List.of(item(1L, "1")), desconto, null, forma);
+  }
 
   @Test
   void somaOsItensSemArredondarSeusSubtotais() {
