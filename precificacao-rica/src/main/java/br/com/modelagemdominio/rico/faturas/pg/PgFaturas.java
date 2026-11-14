@@ -87,7 +87,8 @@ public final class PgFaturas implements Faturas {
       conexao.setTransactionIsolation(Connection.TRANSACTION_REPEATABLE_READ);
       conexao.setAutoCommit(false);
       try {
-        ValoresFatura valores = this.preparar(conexao, calculo, vinculos, false).preparar();
+        ValoresFatura valores = this.preparar(conexao, calculo, vinculos, false)
+                .comTaxa(vinculos.taxa()).preparar();
         conexao.commit();
         return valores;
       } catch (SQLException | FalhaFatura | RuntimeException falha) {

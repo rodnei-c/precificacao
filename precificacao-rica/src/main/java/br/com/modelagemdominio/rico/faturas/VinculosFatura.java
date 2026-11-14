@@ -1,5 +1,8 @@
 package br.com.modelagemdominio.rico.faturas;
 
+import br.com.modelagemdominio.rico.faturas.taxas.SemTaxa;
+import br.com.modelagemdominio.rico.faturas.taxas.TaxaPagamento;
+
 import java.util.Objects;
 import java.util.Optional;
 
@@ -22,5 +25,10 @@ public record VinculosFatura(Optional<Long> codigoCliente, Optional<FormaPagamen
     if (codigoCliente.isPresent() && codigoCliente.orElseThrow() <= 0) {
       throw new FaturaInvalida("O código do cliente deve ser maior que zero.");
     }
+  }
+
+  /** @return taxa da forma de pagamento informada; sem forma, não há taxa */
+  public TaxaPagamento taxa() {
+    return this.formaPagamento.map(FormaPagamento::taxa).orElseGet(SemTaxa::new);
   }
 }

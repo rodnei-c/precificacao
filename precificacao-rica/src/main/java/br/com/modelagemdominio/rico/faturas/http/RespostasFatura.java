@@ -37,12 +37,12 @@ final class RespostasFatura {
     ValoresFatura valores = fatura.valores();
     var vinculos = fatura.vinculos();
     var resposta = new FaturaResposta(fatura.codigo(), fatura.dataCriacao(),
-      new ValoresResposta(valores), new VinculosResposta(vinculos));
+            new ValoresResposta(valores), new VinculosResposta(vinculos));
     return this.json(resposta);
   }
 
   Response simulacao(ValoresFatura valores) {
-    return this.json(new ValoresResposta(valores));
+    return this.json(new SimulacaoResposta(valores));
   }
 
   Response lista(List<ResumoFatura> faturas) {
@@ -70,14 +70,14 @@ final class RespostasFatura {
       case CODIGO_INVALIDO -> this.codigoInvalido(caminho);
       case DADOS_INVALIDOS -> this.dadosInvalidos(falha.getMessage(), caminho);
       case FATURA_AUSENTE, PRODUTO_AUSENTE, CLIENTE_AUSENTE ->
-        this.problemas.resposta(404, "Registro não encontrado", falha.getMessage(), caminho);
+              this.problemas.resposta(404, "Registro não encontrado", falha.getMessage(), caminho);
       case PERSISTENCIA_INDISPONIVEL -> this.problemas.resposta(503, "Persistência indisponível",
-        "Não foi possível concluir a operação no banco de dados.", caminho);
+              "Não foi possível concluir a operação no banco de dados.", caminho);
     };
   }
 
   private record FaturaResposta(long codigo, LocalDateTime dataCriacao,
-    @JsonUnwrapped ValoresResposta valores, @JsonUnwrapped VinculosResposta vinculos) {
+                                @JsonUnwrapped ValoresResposta valores, @JsonUnwrapped VinculosResposta vinculos) {
   }
 
   private record ItemResposta(long codigoProduto, BigDecimal quantidade, BigDecimal precoVenda, BigDecimal subtotal) {
@@ -90,13 +90,22 @@ final class RespostasFatura {
 
     ValoresResposta(ValoresFatura valores) {
       this(valores.itens().stream().map(ItemResposta::new).toList(),
-        valores.subtotal(), valores.descontoAplicado(), valores.total());
+              valores.subtotal(), valores.descontoAplicado(), valores.total());
+    }
+  }
+
+  private record SimulacaoResposta(List<ItemResposta> itens, BigDecimal subtotal,
+                                   BigDecimal descontoAplicado, BigDecimal taxaPagamento, BigDecimal total) {
+
+    SimulacaoResposta(ValoresFatura valores) {
+      this(valores.itens().stream().map(ItemResposta::new).toList(),
+              valores.subtotal(), valores.descontoAplicado(), valores.taxaPagamento(), valores.total());
     }
   }
 
   private record VinculosResposta(
-    @JsonInclude(JsonInclude.Include.NON_NULL) Long codigoCliente,
-    @JsonInclude(JsonInclude.Include.NON_NULL) FormaPagamento formaPagamento) {
+          @JsonInclude(JsonInclude.Include.NON_NULL) Long codigoCliente,
+          @JsonInclude(JsonInclude.Include.NON_NULL) FormaPagamento formaPagamento) {
 
     VinculosResposta(VinculosFatura vinculos) {
       this(vinculos.codigoCliente().orElse(null), vinculos.formaPagamento().orElse(null));
@@ -104,7 +113,7 @@ final class RespostasFatura {
   }
 
   private record ResumoResposta(long codigo, LocalDateTime dataCriacao, long quantidadeItens,
-    @JsonUnwrapped VinculosResposta vinculos) {
+                                @JsonUnwrapped VinculosResposta vinculos) {
 
     ResumoResposta(ResumoFatura resumo) {
       this(resumo.codigo(), resumo.dataCriacao(), resumo.quantidadeItens(), new VinculosResposta(resumo.vinculos()));

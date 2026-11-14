@@ -1,30 +1,40 @@
 package br.com.modelagemdominio.rico.faturas;
 
 import br.com.modelagemdominio.rico.faturas.descontos.Desconto;
+import br.com.modelagemdominio.rico.faturas.taxas.SemTaxa;
+import br.com.modelagemdominio.rico.faturas.taxas.TaxaPagamento;
 import br.com.modelagemdominio.rico.produtos.FalhaProduto;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 
-/** Compõe os itens e o desconto para preparar ou recalcular uma fatura. */
+/** Compõe os itens, o desconto e a taxa para preparar ou recalcular uma fatura. */
 public final class CalculoFatura {
 
   private final List<ItemFatura> itens;
   private final Desconto desconto;
+  private final TaxaPagamento taxa;
 
   /**
-   * Valida a composição sem consultar os produtos.
+   * Valida a composição sem consultar os produtos e sem taxa de pagamento.
    *
    * @param itens lista não vazia, sem itens nulos ou produtos repetidos
    * @param desconto desconto único, inclusive SemDesconto para ausência
    * @throws FaturaInvalida quando a composição não atender às regras
    */
   public CalculoFatura(List<ItemFatura> itens, Desconto desconto) {
+    this(itens, desconto, new SemTaxa());
+  }
+
+  private CalculoFatura(List<ItemFatura> itens, Desconto desconto, TaxaPagamento taxa) {
     if (itens == null || itens.isEmpty()) {
       throw new FaturaInvalida("Informe pelo menos um item na fatura.");
     }
     if (desconto == null) {
       throw new FaturaInvalida("Informe o desconto ou a ausência de desconto da fatura.");
+    }
+    if (taxa == null) {
+      throw new FaturaInvalida("Informe a taxa de pagamento.");
     }
     var produtos = new HashSet<Long>();
     for (ItemFatura item : itens) {
@@ -37,6 +47,7 @@ public final class CalculoFatura {
     }
     this.itens = List.copyOf(itens);
     this.desconto = desconto;
+    this.taxa = taxa;
   }
 
   /** @return itens validados, em uma lista imutável e sem consultar produtos */
@@ -47,6 +58,17 @@ public final class CalculoFatura {
   /** @return desconto contratado, preservado entre os cálculos */
   public Desconto desconto() {
     return this.desconto;
+  }
+
+  /**
+   * Cria um novo cálculo com os mesmos itens e desconto, acrescido da taxa informada.
+   *
+   * @param taxa regra de taxa aplicada sobre o saldo após o desconto
+   * @return novo cálculo; este objeto não é alterado
+   * @throws FaturaInvalida quando a taxa for nula
+   */
+  public CalculoFatura comTaxa(TaxaPagamento taxa) {
+    return new CalculoFatura(this.itens, this.desconto, taxa);
   }
 
   /**
@@ -77,8 +99,8 @@ public final class CalculoFatura {
       }
     } catch (FalhaProduto falha) {
       throw new FalhaFatura(falha.motivo() == FalhaProduto.Motivo.PRODUTO_AUSENTE
-        ? FalhaFatura.Motivo.PRODUTO_AUSENTE : FalhaFatura.Motivo.PERSISTENCIA_INDISPONIVEL, falha);
+              ? FalhaFatura.Motivo.PRODUTO_AUSENTE : FalhaFatura.Motivo.PERSISTENCIA_INDISPONIVEL, falha);
     }
-    return new ValoresFatura(calculados, this.desconto);
+    return new ValoresFatura(calculados, this.desconto, this.taxa);
   }
 }

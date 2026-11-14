@@ -273,4 +273,50 @@ class CalculoFaturaTest {
       return Optional.empty();
     }
   }
+
+  @ParameterizedTest
+  @CsvSource({
+          "PIX, 0.00, 90.00",
+          "DINHEIRO, 0.00, 90.00",
+          "CARTAO_DEBITO, 0.00, 90.00",
+          "BOLETO, 5.00, 95.00",
+          "CARTAO_CREDITO, 1.80, 91.80"
+  })
+  void aplicaTaxaSobreOSaldoAposODesconto(FormaPagamento forma, String taxa, String total)
+          throws Exception {
+    var produtos = new ProdutosDeTeste();
+    produtos.preco(1, "100.00");
+    var calculo = new CalculoFatura(List.of(item(produtos, 1, "1")),
+            new DescontoFixo(new BigDecimal("10.00"))).comTaxa(forma.taxa());
+
+    ValoresFatura valores = calculo.preparar();
+
+    assertEquals(0, new BigDecimal(taxa).compareTo(valores.taxaPagamento()));
+    assertEquals(new BigDecimal(total), valores.total());
+  }
+
+  @ParameterizedTest
+  @EnumSource(value = FormaPagamento.class, names = {"BOLETO", "CARTAO_CREDITO"})
+  void saldoZeroAnulaATaxaInclusiveNoBoleto(FormaPagamento forma) throws Exception {
+    var produtos = new ProdutosDeTeste();
+    produtos.preco(1, "100.00");
+    var calculo = new CalculoFatura(List.of(item(produtos, 1, "1")),
+            new DescontoFixo(new BigDecimal("100.00"))).comTaxa(forma.taxa());
+
+    ValoresFatura valores = calculo.preparar();
+
+    assertEquals(0, BigDecimal.ZERO.compareTo(valores.taxaPagamento()));
+    assertEquals(new BigDecimal("0.00"), valores.total());
+  }
+
+  @Test
+  void semFormaDePagamentoOuSemComTaxaNaoCobraTaxa() throws Exception {
+    var produtos = new ProdutosDeTeste();
+    produtos.preco(1, "100.00");
+    var calculo = new CalculoFatura(List.of(item(produtos, 1, "1")), new SemDesconto());
+
+    assertEquals(0, BigDecimal.ZERO.compareTo(calculo.preparar().taxaPagamento()));
+    assertEquals(0, BigDecimal.ZERO.compareTo(
+            calculo.comTaxa(new VinculosFatura().taxa()).preparar().taxaPagamento()));
+  }
 }
