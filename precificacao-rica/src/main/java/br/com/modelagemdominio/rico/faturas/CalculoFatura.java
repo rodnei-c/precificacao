@@ -1,6 +1,8 @@
 package br.com.modelagemdominio.rico.faturas;
 
 import br.com.modelagemdominio.rico.faturas.descontos.Desconto;
+import br.com.modelagemdominio.rico.faturas.taxas.SemTaxa;
+import br.com.modelagemdominio.rico.faturas.taxas.TaxaPagamento;
 import br.com.modelagemdominio.rico.produtos.FalhaProduto;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -57,7 +59,20 @@ public final class CalculoFatura {
    * @throws FaturaInvalida quando o desconto inicial ultrapassar o subtotal
    */
   public ValoresFatura preparar() throws FalhaFatura {
-    ValoresFatura valores = this.calcular();
+    return this.preparar(new SemTaxa());
+  }
+
+  /**
+   * Prepara cadastro ou simulação, aplicando a taxa recebida e rejeitando desconto fixo superior
+   * ao subtotal inicial.
+   *
+   * @param taxaPagamento regra de taxa ou ausência de taxa
+   * @return valores calculados com o desconto inicial validado
+   * @throws FalhaFatura quando um produto estiver ausente ou sua leitura falhar
+   * @throws FaturaInvalida quando o desconto inicial ultrapassar o subtotal
+   */
+  public ValoresFatura preparar(TaxaPagamento taxaPagamento) throws FalhaFatura {
+    ValoresFatura valores = this.calcular(taxaPagamento);
     this.desconto.validarSubtotalInicial(valores.subtotal());
     return valores;
   }
@@ -70,6 +85,17 @@ public final class CalculoFatura {
    * @throws FalhaFatura quando um produto estiver ausente ou sua leitura falhar
    */
   public ValoresFatura calcular() throws FalhaFatura {
+    return this.calcular(new SemTaxa());
+  }
+
+  /**
+   * Consulta cada item uma vez e aplica o desconto e a taxa aos preços observados.
+   *
+   * @param taxaPagamento regra de taxa ou ausência de taxa
+   * @return valores constantes desta operação; uma nova chamada consulta os produtos novamente
+   * @throws FalhaFatura quando um produto estiver ausente ou sua leitura falhar
+   */
+  public ValoresFatura calcular(TaxaPagamento taxaPagamento) throws FalhaFatura {
     var calculados = new ArrayList<ValoresItemFatura>(this.itens.size());
     try {
       for (ItemFatura item : this.itens) {
@@ -79,6 +105,6 @@ public final class CalculoFatura {
       throw new FalhaFatura(falha.motivo() == FalhaProduto.Motivo.PRODUTO_AUSENTE
         ? FalhaFatura.Motivo.PRODUTO_AUSENTE : FalhaFatura.Motivo.PERSISTENCIA_INDISPONIVEL, falha);
     }
-    return new ValoresFatura(calculados, this.desconto);
+    return new ValoresFatura(calculados, this.desconto, taxaPagamento);
   }
 }

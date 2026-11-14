@@ -507,9 +507,16 @@ class CadastrosPostgresTest {
     JsonNode simulacao = resposta("POST", "/api/faturas/simulacao", corpo, 200);
     assertEquals(antes, jdbc.queryForObject("SELECT COUNT(*) FROM fatura", Integer.class));
     JsonNode fatura = resposta("POST", "/api/faturas", corpo, 201);
-    for (String campo : new String[]{"itens", "subtotal", "descontoAplicado", "total"}) {
+    for (String campo : new String[]{"itens", "subtotal", "descontoAplicado"}) {
       assertEquals(simulacao.get(campo), fatura.get(campo), campo);
     }
+    BigDecimal taxaEsperada = switch (formaPagamento) {
+      case "BOLETO" -> new BigDecimal("5.00");
+      case "CARTAO_CREDITO" -> new BigDecimal("2.70");
+      default -> BigDecimal.ZERO;
+    };
+    assertEquals(0, taxaEsperada.compareTo(simulacao.get("taxaPagamento").decimalValue()));
+    assertEquals(0, new BigDecimal("135.00").add(taxaEsperada).compareTo(simulacao.get("total").decimalValue()));
     assertEquals(0, new BigDecimal("135.00").compareTo(fatura.get("total").decimalValue()));
     assertEquals(cliente.get("codigo"), fatura.get("codigoCliente"));
     assertEquals(formaPagamento, fatura.get("formaPagamento").stringValue());

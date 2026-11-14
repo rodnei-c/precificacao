@@ -141,13 +141,13 @@ O GET faz uma única consulta e não grava dados. Os subtotais e o desconto mant
 
 ## Simular uma fatura
 
-Envie um POST para `http://127.0.0.1:8081/api/faturas/simulacao` com `Content-Type: application/json`, usando o mesmo corpo do cadastro mostrado acima. A resposta `200 OK` contém somente `itens`, `subtotal`, `descontoAplicado` e `total`.
+Envie um POST para `http://127.0.0.1:8081/api/faturas/simulacao` com `Content-Type: application/json`, usando o mesmo corpo do cadastro mostrado acima. A resposta `200 OK` contém `itens`, `subtotal`, `descontoAplicado`, `taxaPagamento` e `total`.
 
 Cliente e pagamento, quando informados, passam pelas mesmas validações do cadastro, mesmo sem aparecer na resposta. O desconto fixo não pode superar o subtotal inicial. Entradas inválidas retornam `400`, referências inexistentes retornam `404` e falhas de leitura retornam `503`.
 
 A simulação consulta os preços atuais e reutiliza a preparação e os objetos de cálculo do cadastro. A operação é somente de leitura: não cria fatura, itens ou código. O JSON e suas validações são compartilhados por `PedidoFatura`; as fórmulas continuam no domínio.
 
-A forma de pagamento não acrescenta taxa ao cálculo atual. A [atividade de manutenção](../documentacao/Atividade-Taxa-por-Forma-de-Pagamento.md) propõe implementar essa regra somente na simulação.
+A taxa depende da forma de pagamento: Pix, dinheiro e cartão de débito não cobram taxa; boleto cobra R$ 5,00; cartão de crédito cobra 2% do saldo após o desconto. A taxa é calculada apenas na simulação e o campo `taxaPagamento` sempre aparece na resposta, inclusive quando for zero.
 
 ## Listar faturas por período e cliente
 

@@ -43,13 +43,15 @@ class SimulacaoFaturaPostgresTest {
       assertEquals(JSON.readTree("""
         {"itens":[{"codigoProduto":%d,"quantidade":0.5,"precoVenda":1.05,"subtotal":0.525},
                   {"codigoProduto":%d,"quantidade":0.5,"precoVenda":1.01,"subtotal":0.505}],
-         "subtotal":1.03,"descontoAplicado":%s,"total":%s}
+         "subtotal":1.03,"descontoAplicado":%s,"taxaPagamento":0,"total":%s}
         """.formatted(cenario.produtos.get(1), cenario.produtos.get(0), aplicado, total)), simulado);
       assertEquals(antes, EstadoDoBanco.capturar(cenario));
 
       var cadastrado = ((ObjectNode) cenario.cadastrar(pedido, 201)).deepCopy();
       cadastrado.remove(List.of("codigo", "dataCriacao", "codigoCliente", "formaPagamento"));
-      assertEquals(cadastrado, simulado);
+      var simuladoSemTaxa = ((ObjectNode) simulado).deepCopy();
+      simuladoSemTaxa.remove("taxaPagamento");
+      assertEquals(cadastrado, simuladoSemTaxa);
     }
   }
 
@@ -67,7 +69,7 @@ class SimulacaoFaturaPostgresTest {
 
       assertEquals(JSON.readTree("""
         {"itens":[{"codigoProduto":%d,"quantidade":0.1234,"precoVenda":1.23,"subtotal":0.151782}],
-         "subtotal":0.151782,"descontoAplicado":0.018738398592,"total":0.13}
+         "subtotal":0.151782,"descontoAplicado":0.018738398592,"taxaPagamento":0,"total":0.13}
         """.formatted(cenario.produtos.get(0))), simulado);
       assertEquals(antes, EstadoDoBanco.capturar(cenario));
     }
@@ -87,7 +89,8 @@ class SimulacaoFaturaPostgresTest {
 
       JsonNode simulado = Simulacao.somenteLeitura(cenario).enviar(pedido, 200, 1);
 
-      assertEquals(Set.of("itens", "subtotal", "descontoAplicado", "total"), simulado.propertyNames());
+      assertEquals(Set.of("itens", "subtotal", "descontoAplicado", "taxaPagamento", "total"),
+        simulado.propertyNames());
       assertEquals(0, new BigDecimal("1.03").compareTo(simulado.path("total").decimalValue()));
       assertEquals(antes, EstadoDoBanco.capturar(cenario));
     }
