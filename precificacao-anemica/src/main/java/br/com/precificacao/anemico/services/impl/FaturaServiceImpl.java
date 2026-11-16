@@ -4,6 +4,7 @@ import br.com.precificacao.anemico.dtos.CadastroFaturaRequisicao;
 import br.com.precificacao.anemico.dtos.FaturaResposta;
 import br.com.precificacao.anemico.dtos.FaturaResumo;
 import br.com.precificacao.anemico.dtos.ValoresFaturaResposta;
+import br.com.precificacao.anemico.enums.FormaPagamento;
 import br.com.precificacao.anemico.enums.TipoDesconto;
 import br.com.precificacao.anemico.exceptions.RegistroNaoEncontradoException;
 import br.com.precificacao.anemico.exceptions.ValidacaoException;
@@ -56,7 +57,12 @@ public class FaturaServiceImpl implements FaturaService {
   @Override
   @Transactional(readOnly = true, isolation = Isolation.REPEATABLE_READ)
   public ValoresFaturaResposta simular(CadastroFaturaRequisicao requisicao) {
-    return prepararFatura(requisicao).valores();
+    FaturaPreparada preparada = prepararFatura(requisicao);
+
+    return calcularValoresSimulacao(
+            preparada.fatura(),
+            preparada.valores()
+    );
   }
 
   @Override
@@ -198,7 +204,46 @@ public class FaturaServiceImpl implements FaturaService {
     BigDecimal subtotal = resumo.subtotal();
     BigDecimal descontoAplicado = calcularDesconto(fatura, subtotal);
     BigDecimal total = subtotal.subtract(descontoAplicado).setScale(2, RoundingMode.HALF_EVEN);
-    return new ValoresFaturaResposta(resumo.itens(), subtotal, descontoAplicado, total);
+    return new ValoresFaturaResposta(resumo.itens(), subtotal, descontoAplicado, BigDecimal.ZERO, total);
+  }
+
+  private ValoresFaturaResposta calcularValoresSimulacao(
+          Fatura fatura,
+          ValoresFaturaResposta valores
+  ) {
+    BigDecimal saldo = valores.subtotal()
+            .subtract(valores.descontoAplicado());
+
+    BigDecimal taxaPagamento = calcularTaxaPagamento(
+            saldo,
+            fatura.getFormaPagamento()
+    );
+
+    BigDecimal total = saldo.add(taxaPagamento)
+            .setScale(2, RoundingMode.HALF_EVEN);
+
+    return new ValoresFaturaResposta(
+            valores.itens(),
+            valores.subtotal(),
+            valores.descontoAplicado(),
+            taxaPagamento,
+            total
+    );
+  }
+
+  private BigDecimal calcularTaxaPagamento(
+          BigDecimal saldo,
+          FormaPagamento formaPagamento
+  ) {
+    if (saldo.signum() <= 0 || formaPagamento == null) {
+      return BigDecimal.ZERO;
+    }
+
+    return switch (formaPagamento) {
+      case BOLETO -> new BigDecimal("5.00");
+      case CARTAO_CREDITO -> saldo.multiply(new BigDecimal("0.02"));
+      case PIX, DINHEIRO, CARTAO_DEBITO -> BigDecimal.ZERO;
+    };
   }
 
   private FaturaResposta resposta(Fatura fatura, ValoresFaturaResposta valores) {
