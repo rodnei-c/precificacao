@@ -10,10 +10,12 @@ public final class ValoresFatura {
 
   private final List<ValoresItemFatura> itens;
   private final Desconto desconto;
+  private final FormaPagamento formaPagamento;
 
-  ValoresFatura(List<ValoresItemFatura> itens, Desconto desconto) {
+  ValoresFatura(List<ValoresItemFatura> itens, Desconto desconto, FormaPagamento formaPagamento) {
     this.itens = List.copyOf(itens);
     this.desconto = desconto;
+    this.formaPagamento = formaPagamento;
   }
 
   /** @return itens calculados na ordem recebida, em uma lista imutável */
@@ -33,6 +35,15 @@ public final class ValoresFatura {
 
   /** @return saldo após o desconto, arredondado somente aqui para duas casas */
   public BigDecimal total() {
-    return this.subtotal().subtract(this.descontoAplicado()).setScale(2, RoundingMode.HALF_EVEN);
+    return this.saldo().add(this.taxaPagamento()).setScale(2, RoundingMode.HALF_EVEN);
+  }
+
+  public BigDecimal taxaPagamento() {
+    BigDecimal saldo = this.saldo();
+    return this.formaPagamento == null ? BigDecimal.ZERO : this.formaPagamento.taxa(saldo);
+  }
+
+  private BigDecimal saldo() {
+    return this.subtotal().subtract(this.descontoAplicado());
   }
 }

@@ -160,6 +160,41 @@ class CalculoFaturaTest {
   }
 
   @ParameterizedTest
+  @CsvSource({
+    "PIX,0.00,90.00",
+    "DINHEIRO,0.00,90.00",
+    "CARTAO_DEBITO,0.00,90.00",
+    "BOLETO,5.00,95.00",
+    "CARTAO_CREDITO,1.80,91.80"
+  })
+  void calculaTaxaDePagamentoSobreSaldoAposDesconto(
+    FormaPagamento formaPagamento, String taxaEsperada, String totalEsperado
+  ) throws Exception {
+    var produtos = new ProdutosDeTeste();
+    produtos.preco(1, "100.00");
+    var calculo = new CalculoFatura(List.of(item(produtos, 1, "1")),
+      new DescontoFixo(new BigDecimal("10.00")));
+
+    ValoresFatura valores = calculo.preparar(formaPagamento);
+
+    assertEquals(0, new BigDecimal(taxaEsperada).compareTo(valores.taxaPagamento()));
+    assertEquals(new BigDecimal(totalEsperado), valores.total());
+  }
+
+  @Test
+  void naoCobraTaxaDeBoletoComSaldoZerado() throws Exception {
+    var produtos = new ProdutosDeTeste();
+    produtos.preco(1, "100.00");
+    var calculo = new CalculoFatura(List.of(item(produtos, 1, "1")),
+      new DescontoFixo(new BigDecimal("100.00")));
+
+    ValoresFatura valores = calculo.preparar(FormaPagamento.BOLETO);
+
+    assertEquals(BigDecimal.ZERO, valores.taxaPagamento());
+    assertEquals(new BigDecimal("0.00"), valores.total());
+  }
+
+  @ParameterizedTest
   @EnumSource(value = FalhaProduto.Motivo.class, names = {"PRODUTO_AUSENTE", "PERSISTENCIA_INDISPONIVEL"})
   void distingueProdutoAusenteDeFalhaDeLeituraEPreservaCausa(FalhaProduto.Motivo motivo) {
     var produtos = new ProdutosDeTeste();

@@ -62,6 +62,12 @@ public final class CalculoFatura {
     return valores;
   }
 
+  public ValoresFatura preparar(FormaPagamento formaPagamento) throws FalhaFatura {
+    ValoresFatura valores = this.calcular(formaPagamento);
+    this.desconto.validarSubtotalInicial(valores.subtotal());
+    return valores;
+  }
+
   /**
    * Consulta cada item uma vez e aplica o desconto aos preços observados.
    * A leitura coerente de vários produtos deve ser garantida pela coleção recebida nos itens.
@@ -70,6 +76,10 @@ public final class CalculoFatura {
    * @throws FalhaFatura quando um produto estiver ausente ou sua leitura falhar
    */
   public ValoresFatura calcular() throws FalhaFatura {
+    return this.calcular(null);
+  }
+
+  public ValoresFatura calcular(FormaPagamento formaPagamento) throws FalhaFatura {
     var calculados = new ArrayList<ValoresItemFatura>(this.itens.size());
     try {
       for (ItemFatura item : this.itens) {
@@ -79,6 +89,6 @@ public final class CalculoFatura {
       throw new FalhaFatura(falha.motivo() == FalhaProduto.Motivo.PRODUTO_AUSENTE
         ? FalhaFatura.Motivo.PRODUTO_AUSENTE : FalhaFatura.Motivo.PERSISTENCIA_INDISPONIVEL, falha);
     }
-    return new ValoresFatura(calculados, this.desconto);
+    return new ValoresFatura(calculados, this.desconto, formaPagamento);
   }
 }

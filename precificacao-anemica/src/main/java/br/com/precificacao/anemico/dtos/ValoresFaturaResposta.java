@@ -7,6 +7,7 @@ public record ValoresFaturaResposta(
   List<FaturaResposta.Item> itens,
   BigDecimal subtotal,
   BigDecimal descontoAplicado,
+  BigDecimal taxaPagamento,
   BigDecimal total
 ) {
 }
