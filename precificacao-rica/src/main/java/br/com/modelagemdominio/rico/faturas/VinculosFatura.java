@@ -23,4 +23,11 @@ public record VinculosFatura(Optional<Long> codigoCliente, Optional<FormaPagamen
       throw new FaturaInvalida("O código do cliente deve ser maior que zero.");
     }
   }
+
+  public TaxaPagamento taxaPagamento() {
+    return this.formaPagamento
+            .map(FormaPagamento::taxa)
+            .orElseGet(SemTaxaPagamento::new);
+  }
+
 }

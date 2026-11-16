@@ -1,11 +1,6 @@
 package br.com.modelagemdominio.rico.faturas.http;
 
-import br.com.modelagemdominio.rico.faturas.CalculoFatura;
-import br.com.modelagemdominio.rico.faturas.FaturaInvalida;
-import br.com.modelagemdominio.rico.faturas.FormaPagamento;
-import br.com.modelagemdominio.rico.faturas.ItemFatura;
-import br.com.modelagemdominio.rico.faturas.Quantidade;
-import br.com.modelagemdominio.rico.faturas.VinculosFatura;
+import br.com.modelagemdominio.rico.faturas.*;
 import br.com.modelagemdominio.rico.faturas.descontos.Desconto;
 import br.com.modelagemdominio.rico.faturas.descontos.DescontoContratado;
 import br.com.modelagemdominio.rico.faturas.descontos.SemDesconto;
@@ -28,7 +23,13 @@ record PedidoFatura(List<Item> itens, DescontoJson desconto, BigDecimal codigoCl
       }
       return item.comProdutos(produtos);
     }).toList();
-    return new CalculoFatura(itens, desconto);
+    FormaPagamento pagamento = this.formaPagamento;
+
+    TaxaPagamento taxa = pagamento == null
+            ? new SemTaxaPagamento()
+            : pagamento.taxa();
+
+    return new CalculoFatura(itens, desconto, taxa);
   }
 
   VinculosFatura vinculos() {

@@ -86,11 +86,21 @@ final class RespostasFatura {
     }
   }
 
-  private record ValoresResposta(List<ItemResposta> itens, BigDecimal subtotal, BigDecimal descontoAplicado, BigDecimal total) {
-
+  private record ValoresResposta(
+          List<ItemResposta> itens,
+          BigDecimal subtotal,
+          BigDecimal descontoAplicado,
+          BigDecimal taxaPagamento,
+          BigDecimal total
+  ) {
     ValoresResposta(ValoresFatura valores) {
-      this(valores.itens().stream().map(ItemResposta::new).toList(),
-        valores.subtotal(), valores.descontoAplicado(), valores.total());
+      this(
+              valores.itens().stream().map(ItemResposta::new).toList(),
+              valores.subtotal(),
+              valores.descontoAplicado(),
+              valores.taxaPagamento(),
+              valores.total()
+      );
     }
   }
 

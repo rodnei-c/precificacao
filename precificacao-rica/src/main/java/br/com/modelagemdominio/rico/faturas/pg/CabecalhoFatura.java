@@ -1,11 +1,6 @@
 package br.com.modelagemdominio.rico.faturas.pg;
 
-import br.com.modelagemdominio.rico.faturas.CalculoFatura;
-import br.com.modelagemdominio.rico.faturas.Fatura;
-import br.com.modelagemdominio.rico.faturas.FaturaConstante;
-import br.com.modelagemdominio.rico.faturas.FormaPagamento;
-import br.com.modelagemdominio.rico.faturas.ItemFatura;
-import br.com.modelagemdominio.rico.faturas.VinculosFatura;
+import br.com.modelagemdominio.rico.faturas.*;
 import br.com.modelagemdominio.rico.faturas.descontos.Desconto;
 import br.com.modelagemdominio.rico.faturas.descontos.DescontoContratado;
 import br.com.modelagemdominio.rico.faturas.descontos.DescontoReconstituido;
@@ -35,6 +30,13 @@ record CabecalhoFatura(long codigo, LocalDateTime data, Desconto desconto, Vincu
 
   /** @param itens itens da mesma consulta usados para compor a fatura */
   Fatura fatura(List<ItemFatura> itens) {
-    return new FaturaConstante(this.codigo, this.data, new CalculoFatura(itens, this.desconto), this.vinculos);
+    TaxaPagamento taxa = this.vinculos.taxaPagamento();
+
+    return new FaturaConstante(
+            this.codigo,
+            this.data,
+            new CalculoFatura(itens, this.desconto, taxa),
+            this.vinculos
+    );
   }
 }

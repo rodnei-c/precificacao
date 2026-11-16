@@ -45,7 +45,11 @@ public interface Fatura {
    * @throws FalhaFatura quando a fatura ou os produtos não puderem ser consultados
    */
   default ValoresFatura valores() throws FalhaFatura {
-    return new CalculoFatura(this.itens(), this.desconto()).calcular();
+    return new CalculoFatura(
+            this.itens(),
+            this.desconto(),
+            this.vinculos().taxaPagamento()
+    ).calcular();
   }
 
   /**

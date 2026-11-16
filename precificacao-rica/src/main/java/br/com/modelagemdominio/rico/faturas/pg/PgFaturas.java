@@ -113,7 +113,11 @@ public final class PgFaturas implements Faturas {
         : this.produtos.produtosParaConsulta(conexao, codigos);
       var itens = calculo.itens().stream()
         .map(item -> new ItemFatura(produtos.get(item.codigoProduto()), item.quantidade())).toList();
-      return new CalculoFatura(itens, calculo.desconto());
+      return new CalculoFatura(
+              itens,
+              calculo.desconto(),
+              calculo.taxaPagamento()
+      );
     } catch (FalhaProduto falha) {
       throw new FalhaFatura(falha.motivo() == FalhaProduto.Motivo.PRODUTO_AUSENTE
         ? FalhaFatura.Motivo.PRODUTO_AUSENTE : FalhaFatura.Motivo.PERSISTENCIA_INDISPONIVEL, falha);

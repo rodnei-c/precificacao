@@ -11,6 +11,7 @@ public final class CalculoFatura {
 
   private final List<ItemFatura> itens;
   private final Desconto desconto;
+  private final TaxaPagamento taxaPagamento;
 
   /**
    * Valida a composição sem consultar os produtos.
@@ -19,14 +20,28 @@ public final class CalculoFatura {
    * @param desconto desconto único, inclusive SemDesconto para ausência
    * @throws FaturaInvalida quando a composição não atender às regras
    */
+
   public CalculoFatura(List<ItemFatura> itens, Desconto desconto) {
+    this(itens, desconto, new SemTaxaPagamento());
+  }
+
+  public CalculoFatura(
+          List<ItemFatura> itens,
+          Desconto desconto,
+          TaxaPagamento taxaPagamento
+  ) {
     if (itens == null || itens.isEmpty()) {
       throw new FaturaInvalida("Informe pelo menos um item na fatura.");
     }
     if (desconto == null) {
       throw new FaturaInvalida("Informe o desconto ou a ausência de desconto da fatura.");
     }
+    if (taxaPagamento == null) {
+      throw new FaturaInvalida("Informe a taxa ou a ausência de taxa da fatura.");
+    }
+
     var produtos = new HashSet<Long>();
+
     for (ItemFatura item : itens) {
       if (item == null) {
         throw new FaturaInvalida("Informe o código e a quantidade de cada item.");
@@ -35,8 +50,10 @@ public final class CalculoFatura {
         throw new FaturaInvalida("Informe cada produto uma única vez na fatura.");
       }
     }
+
     this.itens = List.copyOf(itens);
     this.desconto = desconto;
+    this.taxaPagamento = taxaPagamento;
   }
 
   /** @return itens validados, em uma lista imutável e sem consultar produtos */
@@ -79,6 +96,14 @@ public final class CalculoFatura {
       throw new FalhaFatura(falha.motivo() == FalhaProduto.Motivo.PRODUTO_AUSENTE
         ? FalhaFatura.Motivo.PRODUTO_AUSENTE : FalhaFatura.Motivo.PERSISTENCIA_INDISPONIVEL, falha);
     }
-    return new ValoresFatura(calculados, this.desconto);
+    return new ValoresFatura(
+            calculados,
+            this.desconto,
+            this.taxaPagamento
+    );
+  }
+
+  public TaxaPagamento taxaPagamento() {
+    return this.taxaPagamento;
   }
 }
