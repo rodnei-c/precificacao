@@ -1,6 +1,7 @@
 package br.com.precificacao.anemico.services;
 
 import br.com.precificacao.anemico.dtos.CadastroFaturaRequisicao;
+import br.com.precificacao.anemico.enums.FormaPagamento;
 import br.com.precificacao.anemico.enums.ModalidadePrecificacao;
 import br.com.precificacao.anemico.enums.TipoDesconto;
 import br.com.precificacao.anemico.exceptions.ValidacaoException;
@@ -182,6 +183,45 @@ class FaturaServiceTest {
 
     conferirValor("1.23", valores.subtotal());
     assertEquals(new BigDecimal(totalEsperado), valores.total());
+  }
+
+  @ParameterizedTest
+  @CsvSource({
+    "PIX,0.00,90.00",
+    "DINHEIRO,0.00,90.00",
+    "CARTAO_DEBITO,0.00,90.00",
+    "BOLETO,5.00,95.00",
+    "CARTAO_CREDITO,1.80,91.80"
+  })
+  void calculaTaxaDePagamentoSomenteNaSimulacao(
+    FormaPagamento formaPagamento, String taxaEsperada, String totalEsperado
+  ) {
+    when(produtos.buscarPorCodigo(1L)).thenReturn(Optional.of(produto(1L, "100.00")));
+    var requisicao = new CadastroFaturaRequisicao(
+      List.of(item(1L, "1")),
+      new CadastroFaturaRequisicao.Desconto(TipoDesconto.VALOR_FIXO, new BigDecimal("10.00")),
+      null, formaPagamento
+    );
+
+    var valores = servico.simular(requisicao);
+
+    conferirValor(taxaEsperada, valores.taxaPagamento());
+    assertEquals(new BigDecimal(totalEsperado), valores.total());
+  }
+
+  @Test
+  void naoCobraTaxaQuandoDescontoConsomeTodoSaldo() {
+    when(produtos.buscarPorCodigo(1L)).thenReturn(Optional.of(produto(1L, "100.00")));
+    var requisicao = new CadastroFaturaRequisicao(
+      List.of(item(1L, "1")),
+      new CadastroFaturaRequisicao.Desconto(TipoDesconto.VALOR_FIXO, new BigDecimal("100.00")),
+      null, FormaPagamento.BOLETO
+    );
+
+    var valores = servico.simular(requisicao);
+
+    conferirValor("0", valores.taxaPagamento());
+    assertEquals(new BigDecimal("0.00"), valores.total());
   }
 
   private Produto produto(long codigo, String preco) {
