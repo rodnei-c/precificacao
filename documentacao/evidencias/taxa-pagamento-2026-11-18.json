@@ -1,0 +1,46 @@
+{
+  "atividade": "Taxa por forma de pagamento somente na simulação",
+  "data": "2026-11-18",
+  "branch": "atividade/taxa-pagamento-nicolas-felipe",
+  "ambiente": {
+    "java": "Temurin 25.0.4.1",
+    "maven": "3.9.16",
+    "postgresql": "16.16, UTF-8, ICU pt-BR"
+  },
+  "compilacao": {
+    "comando": "mvn -s configuracao-maven.xml -B -ntp package",
+    "codigoSaida": 0,
+    "testesSemBanco": 476
+  },
+  "integracao": {
+    "comando": "./scripts/dev.sh testar",
+    "codigoSaida": 0,
+    "anemico": 183,
+    "rico": 513,
+    "total": 696,
+    "falhas": 0,
+    "erros": 0,
+    "ignorados": 0
+  },
+  "http": {
+    "executor": "Node.js: HTTP e subconjunto pm usado na coleção",
+    "colecao": "documentacao/postman/precificacao-rica.postman_collection.json",
+    "alvos": [
+      "http://127.0.0.1:18080",
+      "http://127.0.0.1:18081"
+    ],
+    "bancos": "Bancos novos e exclusivos em PostgreSQL de testes, porta 55433",
+    "inicio": "2026-11-18T03:35:15.995Z",
+    "fim": "2026-11-18T03:35:17.036Z",
+    "rodadasPorModelo": 2,
+    "requisicoesPorRodada": 93,
+    "requisicoesTotais": 372,
+    "assercoesTotais": 628,
+    "comparacoes": 186,
+    "comparacoesAprovadas": 186,
+    "diferencasTextuaisDeErro": 14,
+    "sucesso": true,
+    "codigoSaida": 0,
+    "limite": "Equivalência dos cenários executados; textos de erro podem diferir mantendo status e contrato."
+  }
+}
