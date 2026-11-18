@@ -4,6 +4,7 @@ import br.com.precificacao.anemico.dtos.CadastroFaturaRequisicao;
 import br.com.precificacao.anemico.dtos.FaturaResposta;
 import br.com.precificacao.anemico.dtos.FaturaResumo;
 import br.com.precificacao.anemico.dtos.ValoresFaturaResposta;
+import br.com.precificacao.anemico.enums.FormaPagamento;
 import br.com.precificacao.anemico.enums.TipoDesconto;
 import br.com.precificacao.anemico.exceptions.RegistroNaoEncontradoException;
 import br.com.precificacao.anemico.exceptions.ValidacaoException;
@@ -56,7 +57,11 @@ public class FaturaServiceImpl implements FaturaService {
   @Override
   @Transactional(readOnly = true, isolation = Isolation.REPEATABLE_READ)
   public ValoresFaturaResposta simular(CadastroFaturaRequisicao requisicao) {
-    return prepararFatura(requisicao).valores();
+    ValoresFaturaResposta valores = prepararFatura(requisicao).valores();
+    BigDecimal saldo = valores.subtotal().subtract(valores.descontoAplicado());
+    BigDecimal taxa = calcularTaxaPagamento(requisicao.formaPagamento(), saldo);
+    return new ValoresFaturaResposta(valores.itens(), valores.subtotal(), valores.descontoAplicado(),
+      taxa, saldo.add(taxa).setScale(2, RoundingMode.HALF_EVEN));
   }
 
   @Override
@@ -198,7 +203,18 @@ public class FaturaServiceImpl implements FaturaService {
     BigDecimal subtotal = resumo.subtotal();
     BigDecimal descontoAplicado = calcularDesconto(fatura, subtotal);
     BigDecimal total = subtotal.subtract(descontoAplicado).setScale(2, RoundingMode.HALF_EVEN);
-    return new ValoresFaturaResposta(resumo.itens(), subtotal, descontoAplicado, total);
+    return new ValoresFaturaResposta(resumo.itens(), subtotal, descontoAplicado, BigDecimal.ZERO, total);
+  }
+
+  private BigDecimal calcularTaxaPagamento(FormaPagamento formaPagamento, BigDecimal saldo) {
+    if (saldo.signum() == 0 || formaPagamento == null) {
+      return BigDecimal.ZERO;
+    }
+    return switch (formaPagamento) {
+      case BOLETO -> new BigDecimal("5.00");
+      case CARTAO_CREDITO -> saldo.multiply(new BigDecimal("0.02"));
+      default -> BigDecimal.ZERO;
+    };
   }
 
   private FaturaResposta resposta(Fatura fatura, ValoresFaturaResposta valores) {
