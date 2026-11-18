@@ -26,6 +26,50 @@ class SimulacaoFaturaPostgresTest {
   private static final JsonMapper JSON = new JsonMapper();
 
   @ParameterizedTest
+  @CsvSource({
+    "PIX,100,1,10,0,90.00,90.00",
+    "DINHEIRO,100,1,10,0,90.00,90.00",
+    "CARTAO_DEBITO,100,1,10,0,90.00,90.00",
+    "OMITIDO,100,1,10,0,90.00,90.00",
+    "NULO,100,1,10,0,90.00,90.00",
+    "BOLETO,100,1,10,5,95.00,90.00",
+    "CARTAO_CREDITO,100,1,10,1.8,91.80,90.00",
+    "BOLETO,100,1,100,0,0.00,0.00",
+    "CARTAO_CREDITO,100,1,100,0,0.00,0.00",
+    "CARTAO_CREDITO,1.01,0.5,0,0.0101,0.52,0.50",
+    "BOLETO,1,0.0001,0,5,5.00,0.00"
+  })
+  void retornaTaxaNumericaSemGravarNemConsumirCodigoEPreservaCadastroEConsulta(
+    String forma, String preco, BigDecimal quantidade, BigDecimal desconto,
+    BigDecimal taxa, BigDecimal total, BigDecimal totalCadastro
+  ) throws Exception {
+    try (var cenario = new CenarioFatura(preco)) {
+      var pedido = cenario.pedido();
+      ((ObjectNode) pedido.path("itens").get(0)).put("quantidade", quantidade);
+      pedido.set("desconto", JSON.createObjectNode().put("tipo", "VALOR_FIXO").put("valor", desconto));
+      if ("NULO".equals(forma)) {
+        pedido.putNull("formaPagamento");
+      } else if (!"OMITIDO".equals(forma)) {
+        pedido.put("formaPagamento", forma);
+      }
+      EstadoDoBanco antes = EstadoDoBanco.capturar(cenario);
+
+      JsonNode simulado = Simulacao.somenteLeitura(cenario).enviar(pedido, 200, 2);
+
+      assertTrue(simulado.path("taxaPagamento").isNumber());
+      assertEquals(0, taxa.compareTo(simulado.path("taxaPagamento").decimalValue()));
+      assertEquals(0, total.compareTo(simulado.path("total").decimalValue()));
+      assertEquals(antes, EstadoDoBanco.capturar(cenario));
+      JsonNode cadastro = cenario.cadastrar(pedido, 201);
+      assertTrue(!cadastro.has("taxaPagamento"));
+      assertEquals(0, totalCadastro.compareTo(cadastro.path("total").decimalValue()));
+      var consulta = new RsPrint(cenario.api.act(new RqFake("GET",
+        "/api/faturas/" + cadastro.path("codigo").asLong())));
+      assertEquals(cadastro, JSON.readTree(consulta.printBody()));
+    }
+  }
+
+  @ParameterizedTest
   @CsvSource({"SEM,0,0,1.03", "PERCENTUAL,12.3456,0.12715968,0.90", "VALOR_FIXO,0.03,0.03,1.00",
     "VALOR_FIXO,1.03,1.03,0.00", "PERCENTUAL,100,1.03,0.00"})
   void confereValoresIndependentesEquivalenciaComCadastroENenhumaGravacao(
@@ -43,12 +87,14 @@ class SimulacaoFaturaPostgresTest {
       assertEquals(JSON.readTree("""
         {"itens":[{"codigoProduto":%d,"quantidade":0.5,"precoVenda":1.05,"subtotal":0.525},
                   {"codigoProduto":%d,"quantidade":0.5,"precoVenda":1.01,"subtotal":0.505}],
-         "subtotal":1.03,"descontoAplicado":%s,"total":%s}
+         "subtotal":1.03,"descontoAplicado":%s,"taxaPagamento":0,"total":%s}
         """.formatted(cenario.produtos.get(1), cenario.produtos.get(0), aplicado, total)), simulado);
       assertEquals(antes, EstadoDoBanco.capturar(cenario));
 
       var cadastrado = ((ObjectNode) cenario.cadastrar(pedido, 201)).deepCopy();
       cadastrado.remove(List.of("codigo", "dataCriacao", "codigoCliente", "formaPagamento"));
+      assertTrue(!cadastrado.has("taxaPagamento"));
+      cadastrado.put("taxaPagamento", 0);
       assertEquals(cadastrado, simulado);
     }
   }
@@ -67,7 +113,7 @@ class SimulacaoFaturaPostgresTest {
 
       assertEquals(JSON.readTree("""
         {"itens":[{"codigoProduto":%d,"quantidade":0.1234,"precoVenda":1.23,"subtotal":0.151782}],
-         "subtotal":0.151782,"descontoAplicado":0.018738398592,"total":0.13}
+         "subtotal":0.151782,"descontoAplicado":0.018738398592,"taxaPagamento":0,"total":0.13}
         """.formatted(cenario.produtos.get(0))), simulado);
       assertEquals(antes, EstadoDoBanco.capturar(cenario));
     }
@@ -87,7 +133,9 @@ class SimulacaoFaturaPostgresTest {
 
       JsonNode simulado = Simulacao.somenteLeitura(cenario).enviar(pedido, 200, 1);
 
-      assertEquals(Set.of("itens", "subtotal", "descontoAplicado", "total"), simulado.propertyNames());
+      assertEquals(Set.of("itens", "subtotal", "descontoAplicado", "taxaPagamento", "total"), simulado.propertyNames());
+      assertTrue(simulado.get("taxaPagamento").isNumber());
+      assertEquals(0, simulado.get("taxaPagamento").decimalValue().signum());
       assertEquals(0, new BigDecimal("1.03").compareTo(simulado.path("total").decimalValue()));
       assertEquals(antes, EstadoDoBanco.capturar(cenario));
     }

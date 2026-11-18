@@ -42,7 +42,7 @@ final class RespostasFatura {
   }
 
   Response simulacao(ValoresFatura valores) {
-    return this.json(new ValoresResposta(valores));
+    return this.json(new SimulacaoResposta(new ValoresResposta(valores), valores.taxaPagamento()));
   }
 
   Response lista(List<ResumoFatura> faturas) {
@@ -92,6 +92,9 @@ final class RespostasFatura {
       this(valores.itens().stream().map(ItemResposta::new).toList(),
         valores.subtotal(), valores.descontoAplicado(), valores.total());
     }
+  }
+
+  private record SimulacaoResposta(@JsonUnwrapped ValoresResposta valores, BigDecimal taxaPagamento) {
   }
 
   private record VinculosResposta(

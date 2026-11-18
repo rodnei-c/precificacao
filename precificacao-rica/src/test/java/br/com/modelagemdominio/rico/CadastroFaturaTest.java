@@ -41,6 +41,7 @@ class CadastroFaturaTest {
     "{\"itens\":[{\"codigoProduto\":1,\"quantidade\":1}],\"formaPagamento\":0}",
     "{\"itens\":[{\"codigoProduto\":1,\"quantidade\":1,\"precoVenda\":10}]}",
     "{\"itens\":[{\"codigoProduto\":1,\"quantidade\":1}],\"total\":10}",
+    "{\"itens\":[{\"codigoProduto\":1,\"quantidade\":1}],\"taxaPagamento\":0}",
     "{\"itens\":[{\"codigoProduto\":1,\"quantidade\":1}]} {}"
   })
   void rejeitaEntradaInvalidaAntesDeAcessarOBanco(String corpo) throws Exception {

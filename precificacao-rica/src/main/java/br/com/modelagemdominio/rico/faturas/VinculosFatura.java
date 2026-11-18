@@ -1,10 +1,16 @@
 package br.com.modelagemdominio.rico.faturas;
 
+import br.com.modelagemdominio.rico.faturas.taxas.SemTaxaPagamento;
+import br.com.modelagemdominio.rico.faturas.taxas.TaxaPagamento;
 import java.util.Objects;
 import java.util.Optional;
 
 /** Referências opcionais da fatura; a existência do cliente é verificada na operação de cadastro. */
 public record VinculosFatura(Optional<Long> codigoCliente, Optional<FormaPagamento> formaPagamento) {
+
+  public TaxaPagamento taxaPagamento() {
+    return this.formaPagamento.<TaxaPagamento>map(forma -> forma).orElseGet(SemTaxaPagamento::new);
+  }
 
   /** Cria vínculos ausentes, sem código fictício de cliente. */
   public VinculosFatura() {

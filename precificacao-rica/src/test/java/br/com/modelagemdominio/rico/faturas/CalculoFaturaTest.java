@@ -39,6 +39,41 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class CalculoFaturaTest {
 
+  @ParameterizedTest
+  @CsvSource(nullValues = "SEM", value = {
+    "PIX,100,1,VALOR_FIXO,10,0,90.00",
+    "DINHEIRO,100,1,VALOR_FIXO,10,0,90.00",
+    "CARTAO_DEBITO,100,1,VALOR_FIXO,10,0,90.00",
+    "SEM,100,1,VALOR_FIXO,10,0,90.00",
+    "BOLETO,100,1,VALOR_FIXO,10,5,95.00",
+    "CARTAO_CREDITO,100,1,VALOR_FIXO,10,1.8,91.80",
+    "BOLETO,100,1,VALOR_FIXO,100,0,0.00",
+    "CARTAO_CREDITO,100,1,PERCENTUAL,100,0,0.00",
+    "BOLETO,100,1,PERCENTUAL,100,0,0.00",
+    "CARTAO_CREDITO,1.01,0.5,VALOR_FIXO,0,0.0101,0.52",
+    "CARTAO_CREDITO,1.23,0.1234,PERCENTUAL,12.3456,0.00266087202816,0.14",
+    "BOLETO,1,0.0001,VALOR_FIXO,0,5,5.00"
+  })
+  void compoeTaxaSemArredondarOSaldoNemAlterarValoresOriginais(
+    FormaPagamento forma, String preco, String quantidade, String tipo,
+    BigDecimal desconto, BigDecimal taxa, BigDecimal total
+  ) throws Exception {
+    var produtos = new ProdutosDeTeste();
+    produtos.preco(1, preco);
+    var calculo = new CalculoFatura(List.of(item(produtos, 1, quantidade)),
+      "PERCENTUAL".equals(tipo) ? new DescontoPercentual(desconto) : new DescontoFixo(desconto));
+    var original = calculo.preparar();
+    BigDecimal totalOriginal = original.total();
+
+    var simulado = original.comTaxa(new VinculosFatura(Optional.empty(), Optional.ofNullable(forma)).taxaPagamento());
+
+    assertEquals(0, taxa.compareTo(simulado.taxaPagamento()));
+    assertEquals(total, simulado.total());
+    assertEquals(totalOriginal, original.total());
+    assertEquals(0, original.taxaPagamento().signum());
+    assertEquals(1, produtos.consultas);
+  }
+
   @Test
   void constroiSemConsultarProdutosEProtegeComposicao() {
     var item = item(new PgProdutosConstantes(new DataSourceSemConexao()), 1, "1");
