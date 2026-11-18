@@ -2,6 +2,7 @@ package br.com.precificacao.anemico.services;
 
 import br.com.precificacao.anemico.dtos.CadastroFaturaRequisicao;
 import br.com.precificacao.anemico.enums.ModalidadePrecificacao;
+import br.com.precificacao.anemico.enums.FormaPagamento;
 import br.com.precificacao.anemico.enums.TipoDesconto;
 import br.com.precificacao.anemico.exceptions.ValidacaoException;
 import br.com.precificacao.anemico.models.Fatura;
@@ -29,6 +30,36 @@ import static org.mockito.Mockito.when;
 
 /** Confere precisão, arredondamento e validações das faturas antes da gravação. */
 class FaturaServiceTest {
+
+  @ParameterizedTest
+  @CsvSource(nullValues = "SEM", value = {
+    "PIX,100,1,VALOR_FIXO,10,0,90.00",
+    "DINHEIRO,100,1,VALOR_FIXO,10,0,90.00",
+    "CARTAO_DEBITO,100,1,VALOR_FIXO,10,0,90.00",
+    "SEM,100,1,VALOR_FIXO,10,0,90.00",
+    "BOLETO,100,1,VALOR_FIXO,10,5,95.00",
+    "CARTAO_CREDITO,100,1,VALOR_FIXO,10,1.8,91.80",
+    "BOLETO,100,1,VALOR_FIXO,100,0,0.00",
+    "CARTAO_CREDITO,100,1,PERCENTUAL,100,0,0.00",
+    "BOLETO,100,1,PERCENTUAL,100,0,0.00",
+    "CARTAO_CREDITO,1.01,0.5,VALOR_FIXO,0,0.0101,0.52",
+    "CARTAO_CREDITO,1.23,0.1234,PERCENTUAL,12.3456,0.00266087202816,0.14",
+    "BOLETO,1,0.0001,VALOR_FIXO,0,5,5.00"
+  })
+  void aplicaTaxaSomenteNaSimulacaoSemArredondarOSaldo(
+    FormaPagamento forma, String preco, String quantidade, TipoDesconto tipo,
+    BigDecimal desconto, BigDecimal taxa, BigDecimal total
+  ) {
+    when(produtos.buscarPorCodigo(1L)).thenReturn(Optional.of(produto(1L, preco)));
+    var pedido = new CadastroFaturaRequisicao(List.of(item(1L, quantidade)),
+      new CadastroFaturaRequisicao.Desconto(tipo, desconto), null, forma);
+
+    var valores = servico.simular(pedido);
+
+    assertEquals(0, taxa.compareTo(valores.taxaPagamento()));
+    assertEquals(total, valores.total());
+    verifyNoInteractions(faturas);
+  }
 
   private final FaturaRepository faturas = mock(FaturaRepository.class);
   private final ProdutoRepository produtos = mock(ProdutoRepository.class);

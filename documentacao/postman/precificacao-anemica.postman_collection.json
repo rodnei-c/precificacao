@@ -74,6 +74,22 @@
       "key": "totalSimulado",
       "value": "",
       "type": "string"
+    },
+    {
+      "key": "codigoProdutoTaxa",
+      "value": ""
+    },
+    {
+      "key": "codigoProdutoTaxaFracionada",
+      "value": ""
+    },
+    {
+      "key": "faturasAntesDasTaxas",
+      "value": ""
+    },
+    {
+      "key": "codigoFaturaTaxa",
+      "value": ""
     }
   ],
   "item": [
@@ -1724,6 +1740,595 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('HTTP 404', function () { pm.response.to.have.status(404); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "6 - Taxa por forma de pagamento na simulação",
+      "item": [
+        {
+          "name": "Preparar produto para taxa 100",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/produtos",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Taxas 100 {{$guid}}\",\n  \"custo\": 100,\n  \"percentual\": 0,\n  \"modalidadePrecificacao\": \"ACRESCIMO_SOBRE_CUSTO\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 201', function () { pm.response.to.have.status(201); });",
+                  "if (pm.response.code === 201) { pm.collectionVariables.set('codigoProdutoTaxa', pm.response.json().codigo); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Preparar produto para taxa fracionário",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/produtos",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Taxas fracionário {{$guid}}\",\n  \"custo\": 1.01,\n  \"percentual\": 0,\n  \"modalidadePrecificacao\": \"ACRESCIMO_SOBRE_CUSTO\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 201', function () { pm.response.to.have.status(201); });",
+                  "if (pm.response.code === 201) { pm.collectionVariables.set('codigoProdutoTaxaFracionada', pm.response.json().codigo); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Guardar quantidade de faturas antes das taxas",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/faturas"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "pm.collectionVariables.set('faturasAntesDasTaxas', pm.response.json().length);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Simular PIX com desconto 10",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/faturas/simulacao",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"itens\":[{\"codigoProduto\":{{codigoProdutoTaxa}},\"quantidade\":1}],\"desconto\":{\"tipo\":\"VALOR_FIXO\",\"valor\":10},\"formaPagamento\":\"PIX\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Taxa numérica', function () { pm.expect(typeof pm.response.json().taxaPagamento).to.eql('number'); });",
+                  "pm.test('Taxa e total esperados', function () { pm.expect(pm.response.json().taxaPagamento).to.eql(0); pm.expect(pm.response.json().total).to.eql(90); });",
+                  "pm.test('Sem identidade de fatura', function () { pm.expect(pm.response.json()).not.to.have.property('codigo'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Simular DINHEIRO com desconto 10",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/faturas/simulacao",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"itens\":[{\"codigoProduto\":{{codigoProdutoTaxa}},\"quantidade\":1}],\"desconto\":{\"tipo\":\"VALOR_FIXO\",\"valor\":10},\"formaPagamento\":\"DINHEIRO\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Taxa numérica', function () { pm.expect(typeof pm.response.json().taxaPagamento).to.eql('number'); });",
+                  "pm.test('Taxa e total esperados', function () { pm.expect(pm.response.json().taxaPagamento).to.eql(0); pm.expect(pm.response.json().total).to.eql(90); });",
+                  "pm.test('Sem identidade de fatura', function () { pm.expect(pm.response.json()).not.to.have.property('codigo'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Simular CARTAO_DEBITO com desconto 10",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/faturas/simulacao",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"itens\":[{\"codigoProduto\":{{codigoProdutoTaxa}},\"quantidade\":1}],\"desconto\":{\"tipo\":\"VALOR_FIXO\",\"valor\":10},\"formaPagamento\":\"CARTAO_DEBITO\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Taxa numérica', function () { pm.expect(typeof pm.response.json().taxaPagamento).to.eql('number'); });",
+                  "pm.test('Taxa e total esperados', function () { pm.expect(pm.response.json().taxaPagamento).to.eql(0); pm.expect(pm.response.json().total).to.eql(90); });",
+                  "pm.test('Sem identidade de fatura', function () { pm.expect(pm.response.json()).not.to.have.property('codigo'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Simular OMITIDO com desconto 10",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/faturas/simulacao",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"itens\":[{\"codigoProduto\":{{codigoProdutoTaxa}},\"quantidade\":1}],\"desconto\":{\"tipo\":\"VALOR_FIXO\",\"valor\":10}}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Taxa numérica', function () { pm.expect(typeof pm.response.json().taxaPagamento).to.eql('number'); });",
+                  "pm.test('Taxa e total esperados', function () { pm.expect(pm.response.json().taxaPagamento).to.eql(0); pm.expect(pm.response.json().total).to.eql(90); });",
+                  "pm.test('Sem identidade de fatura', function () { pm.expect(pm.response.json()).not.to.have.property('codigo'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Simular NULO com desconto 10",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/faturas/simulacao",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"itens\":[{\"codigoProduto\":{{codigoProdutoTaxa}},\"quantidade\":1}],\"desconto\":{\"tipo\":\"VALOR_FIXO\",\"valor\":10},\"formaPagamento\":null}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Taxa numérica', function () { pm.expect(typeof pm.response.json().taxaPagamento).to.eql('number'); });",
+                  "pm.test('Taxa e total esperados', function () { pm.expect(pm.response.json().taxaPagamento).to.eql(0); pm.expect(pm.response.json().total).to.eql(90); });",
+                  "pm.test('Sem identidade de fatura', function () { pm.expect(pm.response.json()).not.to.have.property('codigo'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Simular BOLETO com desconto 10",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/faturas/simulacao",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"itens\":[{\"codigoProduto\":{{codigoProdutoTaxa}},\"quantidade\":1}],\"desconto\":{\"tipo\":\"VALOR_FIXO\",\"valor\":10},\"formaPagamento\":\"BOLETO\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Taxa numérica', function () { pm.expect(typeof pm.response.json().taxaPagamento).to.eql('number'); });",
+                  "pm.test('Taxa e total esperados', function () { pm.expect(pm.response.json().taxaPagamento).to.eql(5); pm.expect(pm.response.json().total).to.eql(95); });",
+                  "pm.test('Sem identidade de fatura', function () { pm.expect(pm.response.json()).not.to.have.property('codigo'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Simular CARTAO_CREDITO com desconto 10",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/faturas/simulacao",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"itens\":[{\"codigoProduto\":{{codigoProdutoTaxa}},\"quantidade\":1}],\"desconto\":{\"tipo\":\"VALOR_FIXO\",\"valor\":10},\"formaPagamento\":\"CARTAO_CREDITO\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Taxa numérica', function () { pm.expect(typeof pm.response.json().taxaPagamento).to.eql('number'); });",
+                  "pm.test('Taxa e total esperados', function () { pm.expect(pm.response.json().taxaPagamento).to.eql(1.8); pm.expect(pm.response.json().total).to.eql(91.8); });",
+                  "pm.test('Sem identidade de fatura', function () { pm.expect(pm.response.json()).not.to.have.property('codigo'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Simular BOLETO com desconto 100",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/faturas/simulacao",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"itens\":[{\"codigoProduto\":{{codigoProdutoTaxa}},\"quantidade\":1}],\"desconto\":{\"tipo\":\"VALOR_FIXO\",\"valor\":100},\"formaPagamento\":\"BOLETO\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Taxa numérica', function () { pm.expect(typeof pm.response.json().taxaPagamento).to.eql('number'); });",
+                  "pm.test('Taxa e total esperados', function () { pm.expect(pm.response.json().taxaPagamento).to.eql(0); pm.expect(pm.response.json().total).to.eql(0); });",
+                  "pm.test('Sem identidade de fatura', function () { pm.expect(pm.response.json()).not.to.have.property('codigo'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Simular CARTAO_CREDITO com desconto 100",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/faturas/simulacao",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"itens\":[{\"codigoProduto\":{{codigoProdutoTaxa}},\"quantidade\":1}],\"desconto\":{\"tipo\":\"VALOR_FIXO\",\"valor\":100},\"formaPagamento\":\"CARTAO_CREDITO\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Taxa numérica', function () { pm.expect(typeof pm.response.json().taxaPagamento).to.eql('number'); });",
+                  "pm.test('Taxa e total esperados', function () { pm.expect(pm.response.json().taxaPagamento).to.eql(0); pm.expect(pm.response.json().total).to.eql(0); });",
+                  "pm.test('Sem identidade de fatura', function () { pm.expect(pm.response.json()).not.to.have.property('codigo'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Preservar precisão da taxa de cartão",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/faturas/simulacao",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"itens\":[{\"codigoProduto\":{{codigoProdutoTaxaFracionada}},\"quantidade\":0.5}],\"formaPagamento\":\"CARTAO_CREDITO\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Somente total arredondado', function () { pm.expect(pm.response.json().subtotal).to.eql(0.505); pm.expect(pm.response.json().taxaPagamento).to.eql(0.0101); pm.expect(pm.response.json().total).to.eql(0.52); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Rejeitar taxa informada pelo cliente",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/faturas/simulacao",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"itens\":[{\"codigoProduto\":{{codigoProdutoTaxa}},\"quantidade\":1}],\"taxaPagamento\":5}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 400', function () { pm.response.to.have.status(400); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Rejeitar forma de pagamento inválida",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/faturas/simulacao",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"itens\":[{\"codigoProduto\":{{codigoProdutoTaxa}},\"quantidade\":1}],\"formaPagamento\":\"CHEQUE\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 400', function () { pm.response.to.have.status(400); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Confirmar ausência de gravação nas simulações com taxa",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/faturas"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Nenhuma fatura criada', function () { pm.expect(pm.response.json().length).to.eql(Number(pm.collectionVariables.get('faturasAntesDasTaxas'))); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Cadastrar boleto preservando total sem taxa",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/faturas",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"itens\":[{\"codigoProduto\":{{codigoProdutoTaxa}},\"quantidade\":1}],\"desconto\":{\"tipo\":\"VALOR_FIXO\",\"valor\":10},\"formaPagamento\":\"BOLETO\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 201', function () { pm.response.to.have.status(201); });",
+                  "if (pm.response.code === 201) { pm.collectionVariables.set('codigoFaturaTaxa', pm.response.json().codigo); }",
+                  "pm.test('Cadastro sem taxa', function () { pm.expect(pm.response.json().total).to.eql(90); pm.expect(pm.response.json()).not.to.have.property('taxaPagamento'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Consultar boleto preservando total sem taxa",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/faturas/{{codigoFaturaTaxa}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Consulta sem taxa', function () { pm.expect(pm.response.json().total).to.eql(90); pm.expect(pm.response.json()).not.to.have.property('taxaPagamento'); });"
                 ]
               }
             }

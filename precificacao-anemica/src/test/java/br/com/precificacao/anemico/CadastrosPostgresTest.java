@@ -493,8 +493,10 @@ class CadastrosPostgresTest {
   }
 
   @ParameterizedTest
-  @ValueSource(strings = {"PIX", "DINHEIRO", "CARTAO_DEBITO", "CARTAO_CREDITO", "BOLETO"})
-  void criaConsultaFiltraESimulaFaturaComClienteEPagamento(String formaPagamento) throws Exception {
+  @CsvSource({"PIX,0,135", "DINHEIRO,0,135", "CARTAO_DEBITO,0,135", "CARTAO_CREDITO,2.7,137.7", "BOLETO,5,140"})
+  void criaConsultaFiltraESimulaFaturaComClienteEPagamento(
+    String formaPagamento, BigDecimal taxa, BigDecimal totalSimulado
+  ) throws Exception {
     JsonNode cliente = cliente(null);
     JsonNode produto = produto(null);
     String corpo = json.writeValueAsString(Map.of(
@@ -507,7 +509,11 @@ class CadastrosPostgresTest {
     JsonNode simulacao = resposta("POST", "/api/faturas/simulacao", corpo, 200);
     assertEquals(antes, jdbc.queryForObject("SELECT COUNT(*) FROM fatura", Integer.class));
     JsonNode fatura = resposta("POST", "/api/faturas", corpo, 201);
-    for (String campo : new String[]{"itens", "subtotal", "descontoAplicado", "total"}) {
+    assertTrue(simulacao.get("taxaPagamento").isNumber());
+    assertEquals(0, taxa.compareTo(simulacao.get("taxaPagamento").decimalValue()));
+    assertEquals(0, totalSimulado.compareTo(simulacao.get("total").decimalValue()));
+    assertFalse(fatura.has("taxaPagamento"));
+    for (String campo : new String[]{"itens", "subtotal", "descontoAplicado"}) {
       assertEquals(simulacao.get(campo), fatura.get(campo), campo);
     }
     assertEquals(0, new BigDecimal("135.00").compareTo(fatura.get("total").decimalValue()));
@@ -518,12 +524,16 @@ class CadastrosPostgresTest {
     assertEquals(1, lista.size());
     assertEquals(fatura.get("codigo"), lista.get(0).get("codigo"));
     assertEquals(formaPagamento, lista.get(0).get("formaPagamento").stringValue());
+    assertFalse(lista.get(0).has("taxaPagamento"));
     assertEquals(0, resposta("GET", "/api/faturas?codigoCliente=9223372036854775807", null, 200).size());
   }
 
   @ParameterizedTest(name = "{0}")
   @CsvSource(delimiter = '|', value = {
     "Itens ausentes|{}",
+    "Taxa informada manualmente|{\"itens\":[{\"codigoProduto\":%1$d,\"quantidade\":1}],\"taxaPagamento\":0}",
+    "Pagamento desconhecido|{\"itens\":[{\"codigoProduto\":%1$d,\"quantidade\":1}],\"formaPagamento\":\"CHEQUE\"}",
+    "Pagamento numérico|{\"itens\":[{\"codigoProduto\":%1$d,\"quantidade\":1}],\"formaPagamento\":0}",
     "Lista de itens vazia|{\"itens\":[]}",
     "Item nulo|{\"itens\":[null]}",
     "Produto repetido|{\"itens\":[{\"codigoProduto\":%1$d,\"quantidade\":1},"
@@ -630,6 +640,54 @@ class CadastrosPostgresTest {
       "{\"custo\":100,\"percentual\":20}", 200);
     JsonNode restaurada = resposta("GET", caminho, null, 200);
     assertEquals(0, new BigDecimal("100").compareTo(restaurada.get("descontoAplicado").decimalValue()));
+  }
+
+  @ParameterizedTest
+  @CsvSource({
+    "PIX,100,1,10,0,90.00,90.00",
+    "DINHEIRO,100,1,10,0,90.00,90.00",
+    "CARTAO_DEBITO,100,1,10,0,90.00,90.00",
+    "OMITIDO,100,1,10,0,90.00,90.00",
+    "NULO,100,1,10,0,90.00,90.00",
+    "BOLETO,100,1,10,5,95.00,90.00",
+    "CARTAO_CREDITO,100,1,10,1.8,91.80,90.00",
+    "BOLETO,100,1,100,0,0.00,0.00",
+    "CARTAO_CREDITO,100,1,100,0,0.00,0.00",
+    "CARTAO_CREDITO,1.01,0.5,0,0.0101,0.52,0.50",
+    "BOLETO,1,0.0001,0,5,5.00,0.00"
+  })
+  void simulaTaxaSemGravarNemConsumirCodigoEPreservaCadastroEConsulta(
+    String forma, BigDecimal preco, BigDecimal quantidade, BigDecimal desconto,
+    BigDecimal taxa, BigDecimal total, BigDecimal totalCadastro
+  ) throws Exception {
+    var produto = resposta("POST", "/api/produtos", json.writeValueAsString(Map.of(
+      "nome", unico("Taxas"), "custo", preco, "percentual", 0,
+      "modalidadePrecificacao", "ACRESCIMO_SOBRE_CUSTO"
+    )), 201);
+    var pedido = json.createObjectNode();
+    pedido.putArray("itens").addObject().put("codigoProduto", produto.get("codigo").longValue())
+      .put("quantidade", quantidade);
+    pedido.putObject("desconto").put("tipo", "VALOR_FIXO").put("valor", desconto);
+    if ("NULO".equals(forma)) {
+      pedido.putNull("formaPagamento");
+    } else if (!"OMITIDO".equals(forma)) {
+      pedido.put("formaPagamento", forma);
+    }
+    var antes = quantidadeDeRegistrosDeFatura();
+    var sequencia = jdbc.queryForMap("SELECT last_value, is_called FROM fatura_id_seq");
+    String corpo = json.writeValueAsString(pedido);
+
+    var simulacao = resposta("POST", "/api/faturas/simulacao", corpo, 200);
+
+    assertTrue(simulacao.get("taxaPagamento").isNumber());
+    assertEquals(0, taxa.compareTo(simulacao.get("taxaPagamento").decimalValue()));
+    assertEquals(0, total.compareTo(simulacao.get("total").decimalValue()));
+    assertEquals(antes, quantidadeDeRegistrosDeFatura());
+    assertEquals(sequencia, jdbc.queryForMap("SELECT last_value, is_called FROM fatura_id_seq"));
+    var cadastro = resposta("POST", "/api/faturas", corpo, 201);
+    assertFalse(cadastro.has("taxaPagamento"));
+    assertEquals(0, totalCadastro.compareTo(cadastro.get("total").decimalValue()));
+    assertEquals(cadastro, resposta("GET", "/api/faturas/" + cadastro.get("codigo").longValue(), null, 200));
   }
 
   private Map<String, Object> quantidadeDeRegistrosDeFatura() {

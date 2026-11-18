@@ -89,7 +89,7 @@ public final class PgFaturas implements Faturas {
       try {
         ValoresFatura valores = this.preparar(conexao, calculo, vinculos, false).preparar();
         conexao.commit();
-        return valores;
+        return valores.comTaxa(vinculos.taxaPagamento());
       } catch (SQLException | FalhaFatura | RuntimeException falha) {
         new ReversaoDaOperacaoDeFatura(conexao, LOG).desfazer(falha);
         throw falha;
